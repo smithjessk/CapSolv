@@ -10,17 +10,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 print('imports')
         
+
 #method for preprocessing; converts a given image to grayscale and applies a threshold
-#returns a tuple of img, ret, and thresh            
+#returns a tuple of img, ret, thresh, avg, tempAvg            
 def preProcessing(img):
     if (len(img.shape) == 3) or (len(img.shape) == 4):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         
     tempAvg = np.average(img)
 
-    ret, thresh = cv2.threshold(img, 120, 255, 0) #normally at 120, 255, 0
+    ret, thresh = cv2.threshold(img, 115, 255, 0) #normally at 120, 255, 0
+    #median = cv2.medianBlur(img, 7)
     avg = np.average(thresh)
-    
+
+    #ret, thresh = cv2.threshold(median, 130, 255, 0) #normally at 120, 255, 0
+    #avg = np.average(thresh)
+
     print("temp: " + str(tempAvg))
     print("avg: " + str(avg))
 
@@ -28,7 +33,7 @@ def preProcessing(img):
 
 #takes a grayscale image and the thresh one
 #produces the contours and draws them on imgray
-def analyzeContours(imgray, thresh, avg, tempAvg):
+def analyzeContours(imgray, thresh, avg, tempAvg, std):
     rez = []
     counter = 0
     
@@ -57,29 +62,36 @@ def analyzeContours(imgray, thresh, avg, tempAvg):
         
         if (ratio < 0.95) and (ratio > 0.0003) and (currArea >= 81): #up here to filter out small images; this can really slow down the process
             #use fromBook as an example of too many contours
-            mask = np.zeros(thresh.shape,np.uint8)
-            cv2.drawContours(mask,[cnt], 0, 255 ,-1)
+            mask = np.zeros(thresh.shape, np.uint8)
+            cv2.drawContours(mask, [cnt], 0, 255 ,-1)
             imgrayMean = cv2.mean(imgray, mask = mask)
-            if (imgrayMean[0] < 0.75*tempAvg): 
-            #cv2.rectangle(imgray, (x,y), (x+w, y+h), (0, 255, 0), 2)
+
+            if (imgrayMean[0] < 0.73*tempAvg):
+                #cv2.rectangle(imgray, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 temp = imgray[y:y+h, x:x+w]
                 #temp = cv2.resize(temp, (32, 32))
                 
                 plt.imshow(temp, cmap='gray')
-                plt.title(str(h) + ", "  + str(w))
+                plt.title(str( (imgrayMean[0] - tempAvg) / std))
                 plt.show()
+                
                 counter += 1
                 rez.append(temp)
         
-    print(counter)    
+    print(counter)  
+    plt.imshow(imgray, cmap='gray')
+    plt.show()  
     return rez
 
 def getIms(img):
     
     img, ret, thresh, avg, tempAvg = preProcessing(img)
-    rez = analyzeContours(img, thresh, avg, tempAvg)
-    
+    #imTemp = deskew(thresh)
+    #plt.imshow(imTemp, cmap='gray')
+    #plt.show()
+    rez = analyzeContours(img, thresh, avg, tempAvg, np.std(thresh))
+
     return rez
 
-img = cv2.imread('../evaluation/digit_training/2.png')
+img = cv2.imread('../evaluation/digit_training/mentalTwoDigit.jpg')
 rez = getIms(img)
