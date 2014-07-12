@@ -358,6 +358,10 @@ CMAKE_UNAME:INTERNAL=/bin/uname
 CMAKE_USE_RELATIVE_PATHS-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
+//Test COMPILER_SUPPORTS_CXX0X
+COMPILER_SUPPORTS_CXX0X:INTERNAL=1
+//Test COMPILER_SUPPORTS_CXX11
+COMPILER_SUPPORTS_CXX11:INTERNAL=1
 //Details about finding OpenCV
 FIND_PACKAGE_MESSAGE_DETAILS_OpenCV:INTERNAL=[opencv_videostab;opencv_video;opencv_ts;opencv_superres;opencv_stitching;opencv_shape;opencv_photo;opencv_optim;opencv_objdetect;opencv_nonfree;opencv_ml;opencv_imgproc;opencv_highgui;opencv_flann;opencv_features2d;opencv_core;opencv_calib3d][v()]
 //ADVANCED property for variable: OPENCV_CVAUX_LIBRARY

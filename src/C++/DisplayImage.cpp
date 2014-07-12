@@ -3,12 +3,17 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <armadillo>
 
 using namespace cv;
+using namespace arma;
 using namespace std;
 
+// Terrible printing mechanism, so this is not used for now
+typedef arma::Mat<unsigned char> charmat; 
+
 // Applies a threshold that accounts for various intensities
-Mat preProcessing(Mat img) {
+cv::Mat preProcessing(cv::Mat img) {
     // Initialization
     cout << "Applying preprocessing" << endl;
     cv::Mat mean;
@@ -35,18 +40,17 @@ Mat preProcessing(Mat img) {
 }
 
 // Finds the contours in the thresholded image
-vector< vector<Point> > analyzeContours(Mat img, Mat original) {
-
+vector< vector<Point> > analyzeContours(cv::Mat img, cv::Mat original) {
 
     // Initialization
     cout << "Analyzing contours" << endl;
     float imgArea = img.rows * img.cols;
     vector< vector<Point> > contours;
 
-    Mat img1 = img.clone();
+    cv::Mat img1 = img.clone();
 
-    Mat imgMean;
-    Mat imgStdDev;
+    cv::Mat imgMean;
+    cv::Mat imgStdDev;
     cv::meanStdDev(img1, imgMean, imgStdDev);
     cout << "Image Mean " << imgMean << endl;
 
@@ -74,8 +78,8 @@ vector< vector<Point> > analyzeContours(Mat img, Mat original) {
 
         // If it's big enough
         if (ratio < 0.95 && ratio > 0.0003 && currArea >= 81) {
-            mask = Mat(img1, temp);
-            Mat mask2 = Mat(original, temp);
+            mask = cv::Mat(img1, temp);
+            cv::Mat mask2 = cv::Mat(original, temp);
             //mask = Mat::zeros(temp.width, temp.height, CV_8U);
             //cout << "New try: " << (mask.rows * mask.cols) << endl;
             //cv::drawContours(mask, contours, i, 255, -1);
@@ -84,12 +88,14 @@ vector< vector<Point> > analyzeContours(Mat img, Mat original) {
             //cout << contourMean << endl;
             float zScore = (contourMean[0] - imgMean.at<double>(0)) / imgStdDev.at<double>(0);
             float ratio = contourMean[0] / imgMean.at<double>(0);
-            cout << "Z-Score: " << zScore << endl;
-            cout << "Ratio: " << ratio << endl;
+            //cout << "Z-Score: " << zScore << endl;
+            //cout << "Ratio: " << ratio << endl;
 
 
             // Check with standard deviations instead
             if (ratio < 0.85 || zScore < -0.55) {
+                cout << "x, y: " << temp.x << ", " << temp.y << endl;
+                cout << "width, height: " << temp.width << ", " << temp.height << endl;
                 cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
                 cv::imshow("Display Image", mask);
                 waitKey(0);  
@@ -103,6 +109,30 @@ vector< vector<Point> > analyzeContours(Mat img, Mat original) {
 
     cout << counter << endl;
     return contours;
+}
+
+// Computes Histogram of Ordered Gradients for an image of a single contour
+// Code based on docs.opencv.org (Need a better reference)
+void HOG(cv::Mat img) {
+    cout << "HOG" << endl;
+    cv::Mat gx, gy, magnitude, angle;
+    int SZ = 20, bin_n = 16;
+
+    cv::Sobel(img, gx, CV_32F, 1, 0);
+    cv::Sobel(img, gy, CV_32F, 0, 1);
+    cv::cartToPolar(gx, gy, magnitude, angle);
+
+    //charmat image_arma = charmat(img.data, img.rows, img.cols, false, false);
+
+    arma::umat bins = umat(img.rows, img.cols, fill::zeros);
+
+    // Go through each element and fill it with the appr. value
+    for (int i = 0; i < bins.n_rows; i++) {
+        for (int j = 0; j < bins.n_cols; j++) {
+            //bins(i, j) = (int)(bin_n * angle.at<double>(i, j)) / (2 * )
+            cout << endl;
+        }
+    }
 }
 
 int main(int argc, char** argv ) {
@@ -124,6 +154,8 @@ int main(int argc, char** argv ) {
         return -1;
     }
 
+    HOG(image);
+
     // Apply preprocessing 
     Scalar ex = cv::mean(image);
     cout << ex << endl;
@@ -131,6 +163,7 @@ int main(int argc, char** argv ) {
     cv::Mat threshImage = preProcessing(image);
     vector< vector<Point> > test;
     test = analyzeContours(threshImage, image);
+
 
     // Display the image in a normal, resizable window
     /**namedWindow("Display Image", cv::WINDOW_NORMAL );
