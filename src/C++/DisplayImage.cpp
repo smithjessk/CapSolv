@@ -115,6 +115,9 @@ vector< vector<Point> > analyzeContours(cv::Mat img, cv::Mat original) {
 // Code based on docs.opencv.org (Need a better reference)
 void HOG(cv::Mat img) {
     cout << "HOG" << endl;
+    wall_clock timer;
+    timer.tic();
+
     cv::Mat gx, gy, magnitude, angle;
     int SZ = 20, bin_n = 16;
 
@@ -129,10 +132,15 @@ void HOG(cv::Mat img) {
     // Go through each element and fill it with the appr. value
     for (int i = 0; i < bins.n_rows; i++) {
         for (int j = 0; j < bins.n_cols; j++) {
-            //bins(i, j) = (int)(bin_n * angle.at<double>(i, j)) / (2 * )
-            cout << endl;
+            bins(i, j) = (int) ((bin_n * angle.at<double>(i, j)) / (2 * datum::pi));
+            // Could be replaced with fancy constructors
         }
     }
+
+    //cout << bins << endl;    
+    
+    cout << timer.toc() << endl;
+    cout << "End HOG" << endl;
 }
 
 int main(int argc, char** argv ) {
@@ -146,6 +154,8 @@ int main(int argc, char** argv ) {
     // Read in the image as grayscale
     cv::Mat image;
     image = cv::imread( argv[1], 0);
+
+    cout << "Image Dimensions: " << image.rows << ", " << image.cols << endl;
 
     // If it is an empty image, return
     if ( !image.data )
