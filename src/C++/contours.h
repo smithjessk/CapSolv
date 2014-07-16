@@ -6,7 +6,7 @@
 
 typedef arma::Mat<unsigned char> cmat;
 
-class Contours;
+//class Contours;
 
 class Contours {
  private:
@@ -15,7 +15,7 @@ class Contours {
   cmat image_;
 
   // The co-ordinates of the corners of the bounding box for each contour.
-  umat corners;
+  arma::umat corners;
 
   // Dimensions of the image upon removal of whitespace.
   unsigned int height_, width_;
@@ -27,13 +27,13 @@ class Contours {
   unsigned int num_contours_;
 
   // Maps values in image_ to the index of the contour they represent.
-  uvec map_;
+  arma::uvec map_;
 
  public:
   Contours(cv::Mat image);
 
   cmat GetContour(int counter) const;
 
- }
+ };
 
 #endif

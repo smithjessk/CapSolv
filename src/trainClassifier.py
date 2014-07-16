@@ -38,6 +38,7 @@ def hog(img):
 #    print(hist)
     return hist
 
+'''
 train, responses = imRead.readImages() #read in raw images and values
 responses = responses.astype(np.float32)
 #print(responses)
@@ -66,6 +67,7 @@ for num in range(2, len(responses)):
 #print(test_images.shape)
 #print(train_responses.shape)
 #print(test_responses.shape)
+'''
 '''train_images = train[:] #all but one five will be used for training
 #train_images = np.concatenate([train_images, train[4:8]])
 test_images = []
@@ -76,7 +78,7 @@ test_responses = []
 #print(len(test_responses))
 '''
 # apply hog to each example in the training set
-hogdata = [hog(example) for example in train_images] 
+'''hogdata = [hog(example) for example in train_images] 
 trainData = np.float32(hogdata).reshape(-1, 64)
 
 ############ TRAIN SVM ################
@@ -104,3 +106,7 @@ print(counter)
 #mask = result==test_responses
 #correct = np.count_nonzero(mask)
 #print(correct * 100.0 / result.size)
+'''
+
+image = cv2.imread('../evaluation/examples/polynomial1.jpg')
+hog(img)

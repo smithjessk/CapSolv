@@ -1,16 +1,26 @@
+// Standard Imports
 #include <iostream>
 #include <stdio.h>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+
+// Armadillo
 #include <armadillo>
+
+// OpenCV Dependencies
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/objdetect.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/core/utility.hpp>
+#include <opencv2/core/cuda.hpp>
+
+//#include "contours.h"
 
 using namespace cv;
 using namespace arma;
 using namespace std;
 
 // Terrible printing mechanism, so this is not used for now
-typedef arma::Mat<unsigned char> charmat; 
+typedef arma::Mat<unsigned char> cmat;
 
 // Applies a threshold that accounts for various intensities
 cv::Mat preProcessing(cv::Mat img) {
@@ -31,9 +41,10 @@ cv::Mat preProcessing(cv::Mat img) {
     cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
 
     // Show the thresholded image
+    /**
     cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
     cv::imshow("Display Image", img);
-    waitKey(0);
+    waitKey(0);*/
 
     cout << endl;
     return img;
@@ -96,9 +107,9 @@ vector< vector<Point> > analyzeContours(cv::Mat img, cv::Mat original) {
             if (ratio < 0.85 || zScore < -0.55) {
                 cout << "x, y: " << temp.x << ", " << temp.y << endl;
                 cout << "width, height: " << temp.width << ", " << temp.height << endl;
-                cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
+                /**cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
                 cv::imshow("Display Image", mask);
-                waitKey(0);  
+                waitKey(0);  */
                 counter++;
             }
             // Don't draw rectangles
@@ -112,14 +123,13 @@ vector< vector<Point> > analyzeContours(cv::Mat img, cv::Mat original) {
 }
 
 // Computes Histogram of Ordered Gradients for an image of a single contour
-// Code based on docs.opencv.org (Need a better reference)
+// Python code was based on OpenCV Docs
+// For another sample, look in samples/gpu/hog.cpp
 void HOG(cv::Mat img) {
     cout << "HOG" << endl;
-    wall_clock timer;
-    timer.tic();
 
     cv::Mat gx, gy, magnitude, angle;
-    int SZ = 20, bin_n = 16;
+    double SZ = 20, bin_n = 16;
 
     cv::Sobel(img, gx, CV_32F, 1, 0);
     cv::Sobel(img, gy, CV_32F, 0, 1);
@@ -132,14 +142,15 @@ void HOG(cv::Mat img) {
     // Go through each element and fill it with the appr. value
     for (int i = 0; i < bins.n_rows; i++) {
         for (int j = 0; j < bins.n_cols; j++) {
-            bins(i, j) = (int) ((bin_n * angle.at<double>(i, j)) / (2 * datum::pi));
+            bins(i, j) = (int) ((bin_n * angle.at<float>(i, j)) / (2 * datum::pi));
             // Could be replaced with fancy constructors
+            cout << bins(i, j) << " ";
         }
+        cout << endl;
     }
 
+
     //cout << bins << endl;    
-    
-    cout << timer.toc() << endl;
     cout << "End HOG" << endl;
 }
 
@@ -153,7 +164,7 @@ int main(int argc, char** argv ) {
 
     // Read in the image as grayscale
     cv::Mat image;
-    image = cv::imread( argv[1], 0);
+    image = cv::imread(argv[1], 0);
 
     cout << "Image Dimensions: " << image.rows << ", " << image.cols << endl;
 

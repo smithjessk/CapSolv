@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 2.8)
 project( DisplayImage )
 
+set(CMAKE_MODULE_PATH './cmake-modules')
+
 list( APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g -ftest-coverage -fprofile-arcs") 
 ## Use c++11
 
 find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
+
 add_executable( DisplayImage DisplayImage.cpp )
 add_executable( test test.cpp )
 
