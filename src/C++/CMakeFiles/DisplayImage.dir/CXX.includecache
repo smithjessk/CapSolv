@@ -11,6 +11,8 @@ iostream
 -
 stdio.h
 -
+vector
+-
 armadillo
 -
 opencv2/core.hpp
