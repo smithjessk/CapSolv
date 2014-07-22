@@ -13,15 +13,11 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/core/cuda.hpp>
-
-//#include "contours.h"
+#include <opencv2/ml/ml.hpp>
 
 using namespace cv;
 using namespace arma;
 using namespace std;
-
-// Terrible printing mechanism, so this is not used for now
-typedef arma::Mat<unsigned char> cmat;
 
 // Applies a threshold that accounts for various intensities
 cv::Mat preProcessing(cv::Mat img) {
@@ -78,9 +74,9 @@ arma::umat HOG(cv::Mat img) {
     }
 
     // Display the resized image
-    cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
-    cv::imshow("Display Image", img);
-    waitKey(0);
+    //cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
+    //cv::imshow("Display Image", img);
+    //waitKey(0);
 
     // Compute Sobel derivatives in the x and y directions
     cv::Sobel(img, gx, CV_32F, 1, 0);
@@ -183,32 +179,17 @@ vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original) {
         if (ratio < 0.95 && ratio > 0.0003 && currArea >= 81) {
             mask = cv::Mat(img1, temp);
             cv::Mat mask2 = cv::Mat(original, temp);
-            //mask = Mat::zeros(temp.width, temp.height, CV_8U);
-            //cout << "New try: " << (mask.rows * mask.cols) << endl;
-            //cv::drawContours(mask, contours, i, 255, -1);
             contourMean = cv::mean(mask);
 
             //cout << contourMean << endl;
             float zScore = (contourMean[0] - imgMean.at<double>(0)) / 
                 imgStdDev.at<double>(0);
             float ratio = contourMean[0] / imgMean.at<double>(0);
-            //cout << "Z-Score: " << zScore << endl;
-            //cout << "Ratio: " << ratio << endl;
-
-
-            // Check with standard deviations instead
+            
             if (ratio < 0.85 || zScore < -0.55) {
-                //cout << "x, y: " << temp.x << ", " << temp.y << endl;
-                //cout << "width, height: " << temp.width << ", " << temp.height << endl;
-                /**cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
-                cv::imshow("Display Image", mask);
-                waitKey(0);  */
                 validContours.push_back(HOG(mask));
                 counter++;
             }
-            // Don't draw rectangles
-            // Crop image to x,y,w,h gotten from the bounding rect
-            // And do operations on that
         }
     }
 
@@ -217,42 +198,39 @@ vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original) {
 }
 
 int main(int argc, char** argv ) {
-    // No image path
-    if ( argc != 2 )
-    {
-        printf("usage: DisplayImage.out <Image_Path>\n");
-        return -1;
-    }
+	arma::wall_clock timer;
 
+	timer.tic();
     // Read in the image as grayscale
     cv::Mat image;
     image = cv::imread(argv[1], 0);
-
-    cout << "Image Dimensions: " << image.rows << ", " << image.cols << endl;
-
-    // If it is an empty image, return
-    if ( !image.data )
-    {
-        printf("No image data \n");
-        return -1;
-    }
-
-    // Apply preprocessing 
-    Scalar ex = cv::mean(image);
-    cout << ex << endl;
 
     cv::Mat threshImage = preProcessing(image);
     vector< arma::umat > contours;
     contours = analyzeContours(threshImage, image);
 
+    float trainData[contours.size()][64];
 
-    // Display the image in a normal, resizable window
-    /**namedWindow("Display Image", cv::WINDOW_NORMAL );
-    imshow("Display Image", image);
+    for (int i = 0; i < contours.size(); i++) {
+    	for (int j = 0; j < 64; j++) {
+    		trainData[i][j] = contours[i][j];
+    	}
+    }
 
-    // On keydown, exit program
-    waitKey(0);*/
-    cout << endl;
-    
+    float responses[9] = {8, 2, 11, 1, 7, 1, 2, 3, 4};
+
+    cv::Mat trainMat(contours.size(), 64, CV_32FC1, trainData);
+    cv::Mat responseMat(9, 1, CV_32FC1, responses);
+
+    CvSVMParams params;
+    params.svm_type = CvSVM::C_SVC;
+    params.kernel_type = CvSVM::LINEAR;
+    params.term_crit = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
+
+    CvSVM SVM;
+    SVM.train(trainMat, responseMat, cv::Mat(), cv::Mat(), params);
+
+    cout << timer.toc() << endl;
+
     return 0;
 }

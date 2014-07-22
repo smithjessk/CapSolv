@@ -3,6 +3,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/ml/ml.hpp>
 #include <armadillo>
 //#include <contours.h>
 
@@ -35,6 +36,7 @@ string type2str(int type) {
 
 // First resize it; the ratio to resize to depends on the picture's 
 // initial aspect ratio
+// Result is 64 by 1
 arma::umat HOG(cv::Mat img) {
     cout << "HOG" << endl;
 
@@ -104,14 +106,30 @@ arma::umat HOG(cv::Mat img) {
     return result;
 }
 
-
 int main(int argc, char** argv) {
 	// Read in image
 	cv::Mat image;
     image = cv::imread( argv[1], 0);
 
-    arma::umat hog = HOG(image);
-    cout << hog;
+    arma::umat hogData = HOG(image);
+    float trainingData[2][64] = {};
+
+    for (int i = 0; i < 64; i++) {
+      trainingData[0][i] = hogData(i, 0);
+      trainingData[1][i] = hogData(i, 0);
+    }
+    cv::Mat trainingMat(2, 64, CV_32FC1, trainingData);
+
+    float responses[2] = {1, 5};
+    cv::Mat responsesMat(2, 1, CV_32FC1, responses);
+
+    CvSVMParams params;
+    params.svm_type = CvSVM::C_SVC;
+    params.kernel_type = CvSVM::LINEAR;
+    params.term_crit = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
+
+    CvSVM SVM;
+    SVM.train(trainingMat, responsesMat, cv::Mat(), cv::Mat(), params);
 
     cout << "Got done" << endl;
 

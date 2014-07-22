@@ -400,6 +400,7 @@ CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/base.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/bufferpool.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/core.hpp
+CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/core_c.h
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/cvdef.h
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/cvstd.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/cvstd.inl.hpp
@@ -411,9 +412,13 @@ CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/persistence.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/ptr.inl.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/traits.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/types.hpp
+CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/types_c.h
+CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/utility.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/core/version.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/highgui.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/highgui/highgui.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/imgproc.hpp
 CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/imgproc/imgproc.hpp
+CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/ml.hpp
+CMakeFiles/test.dir/test.cpp.o: /usr/local/include/opencv2/ml/ml.hpp
 

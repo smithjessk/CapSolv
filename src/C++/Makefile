@@ -124,6 +124,19 @@ test/fast:
 	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/build
 .PHONY : test/fast
 
+#=============================================================================
+# Target rules for targets named trainSVM
+
+# Build rule for target.
+trainSVM: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 trainSVM
+.PHONY : trainSVM
+
+# fast build rule for target.
+trainSVM/fast:
+	$(MAKE) -f CMakeFiles/trainSVM.dir/build.make CMakeFiles/trainSVM.dir/build
+.PHONY : trainSVM/fast
+
 DisplayImage.o: DisplayImage.cpp.o
 .PHONY : DisplayImage.o
 
@@ -172,6 +185,30 @@ test.cpp.s:
 	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/test.cpp.s
 .PHONY : test.cpp.s
 
+trainSVM.o: trainSVM.cpp.o
+.PHONY : trainSVM.o
+
+# target to build an object file
+trainSVM.cpp.o:
+	$(MAKE) -f CMakeFiles/trainSVM.dir/build.make CMakeFiles/trainSVM.dir/trainSVM.cpp.o
+.PHONY : trainSVM.cpp.o
+
+trainSVM.i: trainSVM.cpp.i
+.PHONY : trainSVM.i
+
+# target to preprocess a source file
+trainSVM.cpp.i:
+	$(MAKE) -f CMakeFiles/trainSVM.dir/build.make CMakeFiles/trainSVM.dir/trainSVM.cpp.i
+.PHONY : trainSVM.cpp.i
+
+trainSVM.s: trainSVM.cpp.s
+.PHONY : trainSVM.s
+
+# target to generate assembly for a file
+trainSVM.cpp.s:
+	$(MAKE) -f CMakeFiles/trainSVM.dir/build.make CMakeFiles/trainSVM.dir/trainSVM.cpp.s
+.PHONY : trainSVM.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -182,12 +219,16 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... test"
+	@echo "... trainSVM"
 	@echo "... DisplayImage.o"
 	@echo "... DisplayImage.i"
 	@echo "... DisplayImage.s"
 	@echo "... test.o"
 	@echo "... test.i"
 	@echo "... test.s"
+	@echo "... trainSVM.o"
+	@echo "... trainSVM.i"
+	@echo "... trainSVM.s"
 .PHONY : help
 
 
