@@ -42,10 +42,10 @@ cv::Mat preProcessing(cv::Mat img) {
     cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
 
     // Show the thresholded image
-    /**
+    
     cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
     cv::imshow("Display Image", img);
-    waitKey(0);*/
+    waitKey(0);
 
     cout << endl;
     return img;
@@ -180,7 +180,7 @@ vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original) {
         ratio = currArea / imgArea;
 
         // If it's big enough
-        if (ratio < 0.95 && ratio > 0.0003 && currArea >= 81) {
+        if (ratio < 0.95 && ratio > 0.0003 && currArea >= 400) {
             mask = cv::Mat(img1, temp);
             cv::Mat mask2 = cv::Mat(original, temp);
             //mask = Mat::zeros(temp.width, temp.height, CV_8U);
@@ -193,16 +193,17 @@ vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original) {
                 imgStdDev.at<double>(0);
             float ratio = contourMean[0] / imgMean.at<double>(0);
             //cout << "Z-Score: " << zScore << endl;
-            //cout << "Ratio: " << ratio << endl;
+            cout << "Ratio: " << ratio / currArea << endl;
+            //cout << ratio;
 
-
-            // Check with standard deviations instead
-            if (ratio < 0.85 || zScore < -0.55) {
+            // Size based reduction
+            if (ratio < 0.85 && (ratio / currArea < 0.0003) ) {
                 //cout << "x, y: " << temp.x << ", " << temp.y << endl;
                 //cout << "width, height: " << temp.width << ", " << temp.height << endl;
                 /**cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
                 cv::imshow("Display Image", mask);
                 waitKey(0);  */
+                cout << "Ratio: " << ratio << endl;
                 validContours.push_back(HOG(mask));
                 counter++;
             }

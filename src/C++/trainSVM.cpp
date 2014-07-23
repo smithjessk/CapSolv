@@ -19,6 +19,32 @@ using namespace cv;
 using namespace arma;
 using namespace std;
 
+
+// Very useful for debugging
+string type2str(int type) {
+  string r;
+
+  uchar depth = type & CV_MAT_DEPTH_MASK;
+  uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+  switch ( depth ) {
+    case CV_8U:  r = "8U"; break;
+    case CV_8S:  r = "8S"; break;
+    case CV_16U: r = "16U"; break;
+    case CV_16S: r = "16S"; break;
+    case CV_32S: r = "32S"; break;
+    case CV_32F: r = "32F"; break;
+    case CV_64F: r = "64F"; break;
+    default:     r = "User"; break;
+  }
+
+  r += "C";
+  r += (chans+'0');
+
+  return r;
+}
+
+
 // Applies a threshold that accounts for various intensities
 cv::Mat preProcessing(cv::Mat img) {
     // Initialization
@@ -49,17 +75,18 @@ cv::Mat preProcessing(cv::Mat img) {
 
 // Computes a length-64 feature vector representing the gradients of the image
 // Built in HOG not used because of size restrictions in place
-arma::umat HOG(cv::Mat img) {
-    cout << "HOG" << endl;
+arma::umat HOG(cv::Mat img, bool displayImgs = false) {
+    //cout << "HOG" << endl;
 
     // Used to determine how to resize
     double aspectRatio = (double)img.rows / img.cols; 
     double scalingFactor, SZ = 20, bin_n = 16;
     cv::Mat gx, gy, magnitude, angle;
     
-    cout << "Aspect Ratio: " << aspectRatio << endl;
+    //cout << "Aspect Ratio: " << aspectRatio << endl;
 
     // If we stretch to certain sizes, the images become greatly deformed
+    
     if (aspectRatio < 0.75) {
         cv::resize(img, img, cv::Size(64, 16)); // Note that size is cols, rows
         scalingFactor = 0.5;
@@ -72,11 +99,16 @@ arma::umat HOG(cv::Mat img) {
         cv::resize(img, img, cv::Size(32, 32));
         scalingFactor = 1;
     }
+    
+    //cv::resize(img, img, cv::Size(32, 32));
+    //scalingFactor = 1;
 
     // Display the resized image
-    //cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
-    //cv::imshow("Display Image", img);
-    //waitKey(0);
+    if (displayImgs) {
+        cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
+        cv::imshow("Display Image", img);
+        waitKey(0);
+    }
 
     // Compute Sobel derivatives in the x and y directions
     cv::Sobel(img, gx, CV_32F, 1, 0);
@@ -135,7 +167,7 @@ arma::umat HOG(cv::Mat img) {
 }
 
 // Finds the contours in the thresholded image
-vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original) {
+vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original, bool displayImgs=false) {
 
     // Initialization
 
@@ -176,7 +208,7 @@ vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original) {
         ratio = currArea / imgArea;
 
         // If it's big enough
-        if (ratio < 0.95 && ratio > 0.0003 && currArea >= 81) {
+        if (ratio < 0.95 && ratio > 0.0003 && currArea >= 400) {
             mask = cv::Mat(img1, temp);
             cv::Mat mask2 = cv::Mat(original, temp);
             contourMean = cv::mean(mask);
@@ -186,8 +218,8 @@ vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original) {
                 imgStdDev.at<double>(0);
             float ratio = contourMean[0] / imgMean.at<double>(0);
             
-            if (ratio < 0.85 || zScore < -0.55) {
-                validContours.push_back(HOG(mask));
+            if (ratio < 0.85 && (ratio / currArea < 0.0003) ) {
+                validContours.push_back(HOG(mask, displayImgs));
                 counter++;
             }
         }
@@ -201,26 +233,43 @@ int main(int argc, char** argv ) {
 	arma::wall_clock timer;
 
 	timer.tic();
-    // Read in the image as grayscale
-    cv::Mat image;
-    image = cv::imread(argv[1], 0);
 
-    cv::Mat threshImage = preProcessing(image);
-    vector< arma::umat > contours;
-    contours = analyzeContours(threshImage, image);
+    // Read in directory name
+    string directory = argv[1];
 
-    float trainData[contours.size()][64];
+    // Create vector of contours and of labels
+    vector< vector< arma::umat > > contours;
+    vector< float > responses;
+    int arraySize = 0;
 
-    for (int i = 0; i < contours.size(); i++) {
-    	for (int j = 0; j < 64; j++) {
-    		trainData[i][j] = contours[i][j];
-    	}
+    for (int i = 2; i < argc; i++) {
+        string num = argv[i];
+        cv::Mat image = cv::imread(directory + "master" + num + ".jpg", 0);
+        float number = stof(num);
+
+        cv::Mat threshImage = preProcessing(image);
+        vector< arma::umat > tempContours = analyzeContours(threshImage, image);
+
+        contours.push_back(tempContours);
+        responses.push_back(number);
+        arraySize += tempContours.size();
     }
 
-    float responses[9] = {8, 2, 11, 1, 7, 1, 2, 3, 4};
+    float trainData[arraySize][64], responseData[arraySize][1];
+    int numAdded = 0;
+
+    for (int i = 0; i < contours.size(); i++) {
+        for (int j = 0; j < contours[i].size(); j++) {
+            for (int k = 0; k < 64; k++) {
+                trainData[numAdded][k] = contours[i][j][k];
+            }
+            responseData[numAdded][0] = responses[numAdded];
+            numAdded++; 
+        }
+    } 
 
     cv::Mat trainMat(contours.size(), 64, CV_32FC1, trainData);
-    cv::Mat responseMat(9, 1, CV_32FC1, responses);
+    cv::Mat responseMat(contours.size(), 1, CV_32FC1, responseData);
 
     CvSVMParams params;
     params.svm_type = CvSVM::C_SVC;
@@ -231,6 +280,25 @@ int main(int argc, char** argv ) {
     SVM.train(trainMat, responseMat, cv::Mat(), cv::Mat(), params);
 
     cout << timer.toc() << endl;
+
+    cout << "Testing SVM" << endl;
+    cv::Mat testImage = cv::imread("../../evaluation/digit_training/1test.jpg", 0);
+    cv::Mat threshTest = preProcessing(testImage);
+
+    vector< arma::umat > testContours = analyzeContours(threshTest, testImage, true);
+
+    float testArray[testContours.size()][64];
+    for (int i = 0; i < testContours.size(); i++) {
+        for (int j = 0; j < 64; j++) {
+            testArray[i][j] = testContours[i][j];
+        }
+    }
+    cv::Mat testMat(testContours.size(), 64, CV_32FC1, testArray);
+    cv::Mat predictionsMat(testContours.size(), 1, CV_32FC1, 0);
+
+    SVM.predict(testMat, predictionsMat);
+    cout << predictionsMat;
+
 
     return 0;
 }
