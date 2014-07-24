@@ -1,3 +1,5 @@
+// Runs the complete pipeline on an image specified using a relative path
+
 // Standard Imports
 #include <iostream>
 #include <stdio.h>
@@ -15,12 +17,13 @@
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/ml/ml.hpp>
 
+// Conflicts created on Mat
 using namespace cv;
 using namespace arma;
 using namespace std;
 
 // Applies a threshold that accounts for various intensities
-cv::Mat preProcessing(cv::Mat img, bool displayImgs = false) {
+cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
     // Initialization
     cout << "Applying preprocessing" << endl;
     cv::Mat mean;
@@ -28,9 +31,7 @@ cv::Mat preProcessing(cv::Mat img, bool displayImgs = false) {
 
     // Calculate the mean and standard deviation 
     cv::meanStdDev(img, mean, stddev);
-    cout << "Mean Intensity: " << mean.at<double>(0) << endl;
-    cout << "Standard Deviation of Intensity: " << stddev.at<double>(0) << endl;
-
+   
     // Determine lower threshold limit
     double lowerLimit = mean.at<double>(0) - (1.5 * stddev.at<double>(0));
 
@@ -50,7 +51,7 @@ cv::Mat preProcessing(cv::Mat img, bool displayImgs = false) {
 
 // Computes a length-64 feature vector representing the gradients of the image
 // Built in HOG not used because of size restrictions in place
-arma::umat HOG(cv::Mat img, bool displayImgs = false) {
+arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
     //cout << "HOG" << endl;
 
     // Used to determine how to resize
@@ -145,22 +146,20 @@ arma::umat HOG(cv::Mat img, bool displayImgs = false) {
 
 // Finds the contours in the thresholded image
 vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original, bool displayImgs=false) {
-
+	cout << "Analyzing contours" << endl;
     // Initialization
+
+    float imgArea = img.rows * img.cols;
+    vector< vector<Point> > contours;
 
     // To be returned and passed to SVM
     vector< arma::umat > validContours;
-
-    cout << "Analyzing contours" << endl;
-    float imgArea = img.rows * img.cols;
-    vector< vector<Point> > contours;
 
     cv::Mat img1 = img.clone();
 
     cv::Mat imgMean;
     cv::Mat imgStdDev;
     cv::meanStdDev(img1, imgMean, imgStdDev);
-    cout << "Image Mean " << imgMean << endl;
 
     // Find the contours
     cv::findContours(img, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
@@ -190,98 +189,72 @@ vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original, bool display
             cv::Mat mask2 = cv::Mat(original, temp);
             contourMean = cv::mean(mask);
 
-            //cout << contourMean << endl;
-            float zScore = (contourMean[0] - imgMean.at<double>(0)) / 
-                imgStdDev.at<double>(0);
             float ratio = contourMean[0] / imgMean.at<double>(0);
             
             if (ratio < 0.85 && (ratio / currArea < 0.0003) ) {
-                validContours.push_back(HOG(mask, displayImgs));
+                validContours.push_back(ComputeHOG(mask, displayImgs));
                 counter++;
             }
         }
     }
 
-    cout << counter << endl;
     return validContours;
 }
 
-int main(int argc, char** argv ) {
-	arma::wall_clock timer;
-
-	timer.tic();
-
-    // Read in directory name
-    string directory = argv[1];
-
-    // Create vector of contours and of labels
-    vector< vector< arma::umat > > contours;
-    vector< float > responses;
-    int arraySize = 0;
-
-    for (int i = 2; i < argc; i++) {
-        string num = argv[i];
-        cv::Mat image = cv::imread(directory + "master" + num + ".jpg", 0);
-        float number = stof(num);
-
-        cv::Mat threshImage = preProcessing(image, false);
-        vector< arma::umat > tempContours = analyzeContours(threshImage, image);
-
-        contours.push_back(tempContours);
-        responses.push_back(number);
-        arraySize += tempContours.size();
-    }
-
-    float trainData[arraySize][64], responseData[arraySize][1];
-    int numAdded = 0;
-
-    for (int i = 0; i < contours.size(); i++) {
-        for (int j = 0; j < contours[i].size(); j++) {
-            for (int k = 0; k < 64; k++) {
-                trainData[numAdded][k] = contours[i][j][k];
-            }
-            responseData[numAdded][0] = responses[i];
-            numAdded++; 
-        }
-    }
-    cout << "Response Data: ";
-    for (int i = 0; i < arraySize; i++) {
-        cout << responseData[i][0] << " ";
-    }
-    cout << endl;
-
-    cv::Mat trainMat(arraySize, 64, CV_32FC1, trainData);
-    cv::Mat responseMat(arraySize, 1, CV_32FC1, responseData);
-
-    CvSVMParams params;
+// Loads and evaluates the SVM on inputMat
+// Predictions are returned in outputMat
+cv::Mat predict(cv::Mat inputMat, cv::Mat outputMat) {
+	// Setting up SVM
+	CvSVMParams params;
     params.svm_type = CvSVM::C_SVC;
     params.kernel_type = CvSVM::LINEAR;
     params.term_crit = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
 
+    // Loading
     CvSVM SVM;
-    SVM.train(trainMat, responseMat, cv::Mat(), cv::Mat(), params);
+    SVM.load("svm_data.dat");
 
-    cout << "Testing SVM" << endl;
-    cv::Mat testImage = cv::imread(
-        "../../evaluation/digit_training/masters/justDigits.jpg", 0);
-    cv::Mat threshTest = preProcessing(testImage, false);
+    // Predictions
+    SVM.predict(inputMat, outputMat);
 
-    vector< arma::umat > testContours = analyzeContours(threshTest, testImage, false);
+    return outputMat;
+}
 
-    float testArray[testContours.size()][64];
-    for (int i = 0; i < testContours.size(); i++) {
+int main(int argc, char** argv) {
+	// Why not time the whole thing?
+	arma::wall_clock timer;
+	timer.tic();
+
+	// Read in the image in grayscale
+	cv::Mat image = cv::imread(argv[1], 0);
+
+	// Apply threshold
+	cv::Mat threshImage = preProcess(image);
+
+	// Compute and describe contours
+	vector< arma::umat > contours = analyzeContours(threshImage, image, false);
+
+	// Pass the contours into an array of floats
+	float contourArray[contours.size()][64];
+	for (int i = 0; i < contours.size(); i++) {
         for (int j = 0; j < 64; j++) {
-            testArray[i][j] = testContours[i][j];
+            contourArray[i][j] = contours[i][j];
         }
     }
-    cv::Mat testMat(testContours.size(), 64, CV_32FC1, testArray);
-    cv::Mat predictionsMat(testContours.size(), 1, CV_32FC1, 0);
 
-    SVM.predict(testMat, predictionsMat);
-    cout << predictionsMat;
-    SVM.save("svm_data.dat");
+    // Create the cv::Mats for the SVM
+    cv::Mat inputMat(contours.size(), 64, CV_32FC1, contourArray);
+    cv::Mat outputMat(contours.size(), 1, CV_32FC1, 0);
 
-    cout << "Time: " << timer.toc() << endl;
+    // Predict using SVM
+    outputMat = predict(inputMat, outputMat);
 
-    return 0;
+    // Print result
+    cout << outputMat << endl;
+
+    // Display time taken
+	cout << timer.toc() << endl;
+
+	// End
+	return 0;
 }

@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
     params.term_crit = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
 
     CvSVM SVM;
-    SVM.train(trainingMat, responsesMat, cv::Mat(), cv::Mat(), params);
+    SVM.load("svm_data.dat");
 
     cout << "Got done" << endl;
 

@@ -112,6 +112,19 @@ DisplayImage/fast:
 .PHONY : DisplayImage/fast
 
 #=============================================================================
+# Target rules for targets named process
+
+# Build rule for target.
+process: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 process
+.PHONY : process
+
+# fast build rule for target.
+process/fast:
+	$(MAKE) -f CMakeFiles/process.dir/build.make CMakeFiles/process.dir/build
+.PHONY : process/fast
+
+#=============================================================================
 # Target rules for targets named test
 
 # Build rule for target.
@@ -160,6 +173,30 @@ DisplayImage.s: DisplayImage.cpp.s
 DisplayImage.cpp.s:
 	$(MAKE) -f CMakeFiles/DisplayImage.dir/build.make CMakeFiles/DisplayImage.dir/DisplayImage.cpp.s
 .PHONY : DisplayImage.cpp.s
+
+process.o: process.cpp.o
+.PHONY : process.o
+
+# target to build an object file
+process.cpp.o:
+	$(MAKE) -f CMakeFiles/process.dir/build.make CMakeFiles/process.dir/process.cpp.o
+.PHONY : process.cpp.o
+
+process.i: process.cpp.i
+.PHONY : process.i
+
+# target to preprocess a source file
+process.cpp.i:
+	$(MAKE) -f CMakeFiles/process.dir/build.make CMakeFiles/process.dir/process.cpp.i
+.PHONY : process.cpp.i
+
+process.s: process.cpp.s
+.PHONY : process.s
+
+# target to generate assembly for a file
+process.cpp.s:
+	$(MAKE) -f CMakeFiles/process.dir/build.make CMakeFiles/process.dir/process.cpp.s
+.PHONY : process.cpp.s
 
 test.o: test.cpp.o
 .PHONY : test.o
@@ -217,12 +254,16 @@ help:
 	@echo "... depend"
 	@echo "... DisplayImage"
 	@echo "... edit_cache"
+	@echo "... process"
 	@echo "... rebuild_cache"
 	@echo "... test"
 	@echo "... trainSVM"
 	@echo "... DisplayImage.o"
 	@echo "... DisplayImage.i"
 	@echo "... DisplayImage.s"
+	@echo "... process.o"
+	@echo "... process.i"
+	@echo "... process.s"
 	@echo "... test.o"
 	@echo "... test.i"
 	@echo "... test.s"

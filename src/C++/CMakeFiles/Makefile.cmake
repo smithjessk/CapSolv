@@ -44,6 +44,7 @@ SET(CMAKE_MAKEFILE_PRODUCTS
 # Dependency information for all targets:
 SET(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/DisplayImage.dir/DependInfo.cmake"
+  "CMakeFiles/process.dir/DependInfo.cmake"
   "CMakeFiles/test.dir/DependInfo.cmake"
   "CMakeFiles/trainSVM.dir/DependInfo.cmake"
   )
