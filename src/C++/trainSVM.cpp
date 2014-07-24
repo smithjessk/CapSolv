@@ -46,7 +46,7 @@ string type2str(int type) {
 
 
 // Applies a threshold that accounts for various intensities
-cv::Mat preProcessing(cv::Mat img) {
+cv::Mat preProcessing(cv::Mat img, bool displayImgs = false) {
     // Initialization
     cout << "Applying preprocessing" << endl;
     cv::Mat mean;
@@ -64,10 +64,11 @@ cv::Mat preProcessing(cv::Mat img) {
     cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
 
     // Show the thresholded image
-    /**
-    cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
-    cv::imshow("Display Image", img);
-    waitKey(0);*/
+    if (displayImgs) {
+        cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
+        cv::imshow("Display Image", img);
+        waitKey(0);
+    }
 
     cout << endl;
     return img;
@@ -102,6 +103,8 @@ arma::umat HOG(cv::Mat img, bool displayImgs = false) {
     
     //cv::resize(img, img, cv::Size(32, 32));
     //scalingFactor = 1;
+
+    cv::medianBlur(img, img, 5);
 
     // Display the resized image
     if (displayImgs) {
@@ -247,7 +250,7 @@ int main(int argc, char** argv ) {
         cv::Mat image = cv::imread(directory + "master" + num + ".jpg", 0);
         float number = stof(num);
 
-        cv::Mat threshImage = preProcessing(image);
+        cv::Mat threshImage = preProcessing(image, true);
         vector< arma::umat > tempContours = analyzeContours(threshImage, image);
 
         contours.push_back(tempContours);
@@ -263,13 +266,18 @@ int main(int argc, char** argv ) {
             for (int k = 0; k < 64; k++) {
                 trainData[numAdded][k] = contours[i][j][k];
             }
-            responseData[numAdded][0] = responses[numAdded];
+            responseData[numAdded][0] = responses[i];
             numAdded++; 
         }
-    } 
+    }
+    cout << "Response Data: ";
+    for (int i = 0; i < arraySize; i++) {
+        cout << responseData[i][0] << " ";
+    }
+    cout << endl;
 
-    cv::Mat trainMat(contours.size(), 64, CV_32FC1, trainData);
-    cv::Mat responseMat(contours.size(), 1, CV_32FC1, responseData);
+    cv::Mat trainMat(arraySize, 64, CV_32FC1, trainData);
+    cv::Mat responseMat(arraySize, 1, CV_32FC1, responseData);
 
     CvSVMParams params;
     params.svm_type = CvSVM::C_SVC;
@@ -282,8 +290,9 @@ int main(int argc, char** argv ) {
     cout << timer.toc() << endl;
 
     cout << "Testing SVM" << endl;
-    cv::Mat testImage = cv::imread("../../evaluation/digit_training/1test.jpg", 0);
-    cv::Mat threshTest = preProcessing(testImage);
+    cv::Mat testImage = cv::imread(
+        "../../evaluation/digit_training/masters/67.jpg", 0);
+    cv::Mat threshTest = preProcessing(testImage, true);
 
     vector< arma::umat > testContours = analyzeContours(threshTest, testImage, true);
 
