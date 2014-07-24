@@ -291,7 +291,7 @@ int main(int argc, char** argv ) {
 
     cout << "Testing SVM" << endl;
     cv::Mat testImage = cv::imread(
-        "../../evaluation/digit_training/masters/67.jpg", 0);
+        "../../evaluation/digit_training/masters/justDigits.jpg", 0);
     cv::Mat threshTest = preProcessing(testImage, true);
 
     vector< arma::umat > testContours = analyzeContours(threshTest, testImage, true);
