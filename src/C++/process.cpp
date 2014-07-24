@@ -112,7 +112,8 @@ arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
 
     // Array that holds magnitudes; Note that dimensions depend on scaling 
     // scaling factor defined above
-    arma::fmat magCells = fmat(32 * scalingFactor, 32 / scalingFactor, fill::zeros);
+    arma::fmat magCells = fmat(32 * scalingFactor, 32 / scalingFactor, 
+    	fill::zeros);
 
     // Used to indicate starting points for iterating over the magCells
     int rowsIndex = 0, colsIndex = 0;
@@ -145,7 +146,8 @@ arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
 }
 
 // Finds the contours in the thresholded image
-vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original, bool displayImgs=false) {
+vector< arma::umat > analyzeContours(cv::Mat img, vector< arma::imat >& parseInfo, 
+	bool displayImgs = false) {
 	cout << "Analyzing contours" << endl;
     // Initialization
 
@@ -179,20 +181,21 @@ vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original, bool display
     for (int i = 0; i < contours.size(); i++) {
         temp = boundingRect(contours[i]);
         // Caluclate each contour's area
-        
+
         currArea = temp.width * temp.height;
         ratio = currArea / imgArea;
 
         // If it's big enough
         if (ratio < 0.95 && ratio > 0.0003 && currArea >= 400) {
             mask = cv::Mat(img1, temp);
-            cv::Mat mask2 = cv::Mat(original, temp);
+            cv::Mat mask2 = cv::Mat(img, temp);
             contourMean = cv::mean(mask);
 
-            float ratio = contourMean[0] / imgMean.at<double>(0);
-            
-            if (ratio < 0.85 && (ratio / currArea < 0.0003) ) {
+            float intensityRatio = contourMean[0] / imgMean.at<double>(0);
+            if (intensityRatio < 0.95 && (intensityRatio / currArea < 0.0003) ) {
                 validContours.push_back(ComputeHOG(mask, displayImgs));
+                arma::imat tempArr = {-1, temp.x, temp.y};
+               	parseInfo.push_back(tempArr);
                 counter++;
             }
         }
@@ -229,10 +232,13 @@ int main(int argc, char** argv) {
 	cv::Mat image = cv::imread(argv[1], 0);
 
 	// Apply threshold
-	cv::Mat threshImage = preProcess(image);
+	cv::Mat threshImage = preProcess(image, true);
+
+	// Create vector containg location + class info
+	vector< arma::imat > parseInfo;
 
 	// Compute and describe contours
-	vector< arma::umat > contours = analyzeContours(threshImage, image, false);
+	vector< arma::umat > contours = analyzeContours(threshImage, parseInfo, false);
 
 	// Pass the contours into an array of floats
 	float contourArray[contours.size()][64];
