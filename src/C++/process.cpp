@@ -180,13 +180,14 @@ vector< arma::umat > analyzeContours(cv::Mat img, vector< arma::imat >& parseInf
     // Iterate over contours
     for (int i = 0; i < contours.size(); i++) {
         temp = boundingRect(contours[i]);
-        // Caluclate each contour's area
 
+        // Caluclate each contour's area
         currArea = temp.width * temp.height;
         ratio = currArea / imgArea;
 
+
         // If it's big enough
-        if (ratio < 0.95 && ratio > 0.0003 && currArea >= 400) {
+        if (ratio < 2 && ratio > 0.0003 && currArea >= 400) {
             mask = cv::Mat(img1, temp);
             cv::Mat mask2 = cv::Mat(img, temp);
             contourMean = cv::mean(mask);
@@ -194,7 +195,7 @@ vector< arma::umat > analyzeContours(cv::Mat img, vector< arma::imat >& parseInf
             float intensityRatio = contourMean[0] / imgMean.at<double>(0);
             if (intensityRatio < 0.95 && (intensityRatio / currArea < 0.0003) ) {
                 validContours.push_back(ComputeHOG(mask, displayImgs));
-                arma::imat tempArr = {-1, temp.x, temp.y};
+                arma::imat tempArr = {-1, temp.x, temp.y, temp.width, temp.height};
                	parseInfo.push_back(tempArr);
                 counter++;
             }
@@ -223,6 +224,43 @@ cv::Mat predict(cv::Mat inputMat, cv::Mat outputMat) {
     return outputMat;
 }
 
+
+// Compares the x values of the contours' top-left corners
+// If those are equal, determine which one ends first and put that first
+bool compareHoriz(arma::imat a, arma::imat b) {
+    if (a[1] == b[1]) {
+        return (a[1] + a[3]) < (b[1] + b[3]);
+    }
+    return a[1] < b[1];
+}
+
+// Checks if a contour is in the main row 
+bool isInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contourEnd) {
+    
+    int amountOutside = 0;
+
+    if ( (mainRowStart > contourStart) && (mainRowEnd < contourEnd) ) { // If the contour contains the entire main row
+        cout << "Entire main row contained" << endl;
+        return true; // Accept it
+    }
+
+    if (contourStart < mainRowStart) {
+        amountOutside += mainRowStart - contourStart;
+    }
+    if (contourEnd > mainRowEnd) {
+        amountOutside += contourEnd - mainRowEnd;
+    }
+
+    //cout << "Diff: " << amountOutside << endl;
+
+    if (amountOutside > 0.4 * (contourEnd - contourStart)) {
+        cout << "Diff too much" << endl;
+        return false;
+    }
+    cout << "Diff acceptable" << endl;
+    return true;
+}
+
 int main(int argc, char** argv) {
 	// Why not time the whole thing?
 	arma::wall_clock timer;
@@ -232,9 +270,17 @@ int main(int argc, char** argv) {
 	cv::Mat image = cv::imread(argv[1], 0);
 
 	// Apply threshold
-	cv::Mat threshImage = preProcess(image, true);
+	cv::Mat threshImage = preProcess(image, false);
+
+    // Compute the middle 1/3 of the image
+    // Used later in parsing
+    int mainRowStart = threshImage.rows / 3;
+    int mainRowEnd = 2 * threshImage.rows / 3;
 
 	// Create vector containg location + class info
+    // Each element contains these values (in this order): 
+    // class, x, y, width, height
+    // Note that x, y are for the top left corner of the image
 	vector< arma::imat > parseInfo;
 
 	// Compute and describe contours
@@ -255,8 +301,20 @@ int main(int argc, char** argv) {
     // Predict using SVM
     outputMat = predict(inputMat, outputMat);
 
+    for (int i = 0; i < contours.size(); i++) {
+        parseInfo[i][0] = outputMat.at<float>(i, 0);
+    }
+
+    // Sort horizontally
+    sort(parseInfo.begin(), parseInfo.end(), compareHoriz);
+
     // Print result
-    cout << outputMat << endl;
+    for (int i = 0; i < parseInfo.size(); i++) {
+        //cout << parseInfo[i] << endl;
+        isInMainRow(mainRowStart, mainRowEnd, parseInfo[i][2], parseInfo[i][2] + parseInfo[i][4]);
+    }
+
+    
 
     // Display time taken
 	cout << timer.toc() << endl;
