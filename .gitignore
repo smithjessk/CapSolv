@@ -5,5 +5,12 @@
 
 paper/*
 evaluation/*
+src/C++/CMakeFiles/*
 
 scratch.txt
+CMakeCache.txt
+DisplayImage
+Makefile
+process
+test
+trainSVM
