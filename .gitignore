@@ -1,2 +1,16 @@
 *.sublime-workspace
 *.sublime-project
+*.py
+*.pyc
+
+paper/*
+evaluation/*
+src/C++/CMakeFiles/*
+
+scratch.txt
+CMakeCache.txt
+DisplayImage
+Makefile
+process
+test
+trainSVM
