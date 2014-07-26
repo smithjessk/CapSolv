@@ -1,4 +1,4 @@
-#set (OpenCV_DIR /home/jess/Desktop/OpenCv/opencv)
+#set (OpenCV_DIR /usr/local/include/opencv2)
 
 ######################################################################
 ## Find OpenCV - variables set:

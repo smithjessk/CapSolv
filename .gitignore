@@ -15,4 +15,3 @@ Makefile
 process
 test
 trainSVM
-cmake_install.cmake
