@@ -4,7 +4,7 @@ SET(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 SET(CMAKE_DEPENDS_CHECK_CXX
-  "/home/jess/Projects/CapSol/src/process.cpp" "/home/jess/Projects/CapSol/src/CMakeFiles/process.dir/process.cpp.o"
+  "/home/jon/CapSol/src/process.cpp" "/home/jon/CapSol/src/CMakeFiles/process.dir/process.cpp.o"
   )
 SET(CMAKE_CXX_COMPILER_ID "GNU")
 
