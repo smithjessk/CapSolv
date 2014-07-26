@@ -33,7 +33,7 @@ cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
     cv::meanStdDev(img, mean, stddev);
    
     // Determine lower threshold limit
-    double lowerLimit = mean.at<double>(0) - (1.5 * stddev.at<double>(0));
+    double lowerLimit = mean.at<double>(0) - (1.25 * stddev.at<double>(0));
 
     // Apply that threshold
     cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
@@ -79,7 +79,7 @@ arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
     //cv::resize(img, img, cv::Size(32, 32));
     //scalingFactor = 1;
 
-    cv::medianBlur(img, img, 5);
+    //cv::medianBlur(img, img, 5);
 
     // Display the resized image
     if (displayImgs) {
@@ -195,9 +195,14 @@ vector< arma::umat > analyzeContours(cv::Mat img, vector< arma::imat >& parseInf
             float intensityRatio = contourMean[0] / imgMean.at<double>(0);
             if (intensityRatio < 0.95 && (intensityRatio / currArea < 0.0003) ) {
                 validContours.push_back(ComputeHOG(mask, displayImgs));
-                arma::imat tempArr = {-1, temp.x, temp.y, temp.width, temp.height};
-               	parseInfo.push_back(tempArr);
+                //arma::imat tempArr = {-1, temp.x, temp.y, temp.width, temp.height};
+               	parseInfo.push_back({-1, temp.x, temp.y, temp.width, temp.height, -1});
                 counter++;
+            } else {
+                //cout << intensityRatio / currArea << endl;
+                //cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
+                //cv::imshow("Display Image", mask);
+                //waitKey(0);
             }
         }
     }
@@ -227,6 +232,7 @@ cv::Mat predict(cv::Mat inputMat, cv::Mat outputMat) {
 
 // Compares the x values of the contours' top-left corners
 // If those are equal, determine which one ends first and put that first
+// Note that both imats should be elements of parseInfo
 bool compareHoriz(arma::imat a, arma::imat b) {
     if (a[1] == b[1]) {
         return (a[1] + a[3]) < (b[1] + b[3]);
@@ -235,30 +241,137 @@ bool compareHoriz(arma::imat a, arma::imat b) {
 }
 
 // Checks if a contour is in the main row 
-bool isInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contourEnd) {
-    
-    int amountOutside = 0;
+bool isInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contourEnd, int& diff) {
 
     if ( (mainRowStart > contourStart) && (mainRowEnd < contourEnd) ) { // If the contour contains the entire main row
-        cout << "Entire main row contained" << endl;
         return true; // Accept it
     }
 
     if (contourStart < mainRowStart) {
-        amountOutside += mainRowStart - contourStart;
+        diff += mainRowStart - contourStart;
     }
     if (contourEnd > mainRowEnd) {
-        amountOutside += contourEnd - mainRowEnd;
+        diff += contourEnd - mainRowEnd;
     }
 
-    //cout << "Diff: " << amountOutside << endl;
+    //cout << "Diff: " << diff << endl;
 
-    if (amountOutside > 0.4 * (contourEnd - contourStart)) {
-        cout << "Diff too much" << endl;
+    if (diff > 0.4 * (contourEnd - contourStart)) {
         return false;
     }
-    cout << "Diff acceptable" << endl;
     return true;
+}
+
+
+int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int index, 
+    vector< string >& result, int& rowCounter) {
+
+    /*
+    cout << "Printing result: " << endl;
+    for (int i = 0; i < result.size(); i++) {
+        cout << result[i];
+    }
+    cout << endl;*/
+
+    string temp = "";
+
+    arma::imat contour = parseInfo[index];
+
+    //cout << "Symbol: " << contour[0] << endl;
+
+    for (int i = 0; i < rows.size(); i++) {
+        //cout << "Main";
+        int mainDiff = 0;
+        bool contained = isInMainRow(rows[i][4], rows[i][5], contour[2], contour[2] + contour[4], mainDiff);
+        if (contained) {
+            cout << "Main" << endl;
+            parseInfo[index][5] = i;
+
+            // Go through the characters and choose the one that relates to this
+            for (int j = 0; j < parseInfo.size(); j++) {
+                if (parseInfo[j][5] == i) {
+                    temp += to_string(parseInfo[j][0]) + " ";
+                    parseInfo[j][5] = -1;
+                    //cout << "Temp: " << temp << endl;
+                }
+            }
+
+            // Need to iterate over and close all rows that relate to this
+
+            int indexOfLinked = -1;
+
+            // Iterate over all other rows and see if any were above/below this
+            for (int j = 0; j < rows.size(); j++) {
+                //cout << rows[j] << endl;
+                if (rows[j][1] == i) {
+                    for (int k = 0; k < parseInfo.size(); k++) {
+                        if (parseInfo[k][5] == rows[j][0]) {
+                            result[rows[j][1]] += "^" + to_string(parseInfo[k][0]) + " ";
+                            parseInfo[k][5] = -1;
+                            indexOfLinked = j;
+                            //cout << "Temp: " << temp << endl;
+                        }
+                    }
+                }
+            }
+            if (indexOfLinked != -1) {
+                rows.erase(rows.begin() + indexOfLinked);
+            }
+            result.push_back(temp);
+            return i;
+        }
+    }
+
+    // Check if it's above
+    for (int i = 0; i < rows.size(); i++) {
+        int aboveDiff = 0, belowDiff = 0;
+
+        bool containedAbove = isInMainRow(rows[i][3], rows[i][4], contour[2], contour[2] + contour[4], aboveDiff);
+        bool containedBelow = isInMainRow(rows[i][5], rows[i][6], contour[2], contour[2] + contour[4], belowDiff);
+
+        //cout << "Above" << aboveDiff << endl;
+        //cout << "Below" << belowDiff << endl;
+
+        if (aboveDiff < belowDiff) {
+            cout << "Above" << endl;
+
+            // Add a new row with the same above limit
+            // but a main row in the middle 1/3 of the previous row's 'above' zone
+            rows.push_back( {rowCounter, i, -1, rows[i][3], 
+                (rows[i][4] - rows[i][3]) / 3, 
+                2 * (rows[i][4] - rows[i][3]) / 3,
+                rows[i][4]
+            } );
+            rowCounter++;
+            parseInfo[index][5] = rowCounter - 1;
+
+            //cout << "i: " << i << ", " << parseInfo[index][5] << endl;
+
+            return rowCounter - 1;
+        }
+        if (belowDiff < aboveDiff) {
+            cout << "Below" << endl;
+            parseInfo[index][5] = i;
+
+            // TODO: COPY CODE FROM ABOVE
+            return i;
+        }
+        /*
+        int contourMean = contour[2] + contour[4] / 2;
+        int rowMean = (rows[i][4] + rows[i][5]) / 2;
+
+        if (contourMean < rowMean) {
+            cout << "Above" << endl;
+            // Create a new arma::imat
+            rows.push_back( {rows.size(), i, -1, 
+                -1, } );
+            return i;
+        } else if (contourMean > rowMean) {
+            cout << "Below" << endl;
+            return i;
+        }
+        */
+    }
 }
 
 int main(int argc, char** argv) {
@@ -272,14 +385,9 @@ int main(int argc, char** argv) {
 	// Apply threshold
 	cv::Mat threshImage = preProcess(image, false);
 
-    // Compute the middle 1/3 of the image
-    // Used later in parsing
-    int mainRowStart = threshImage.rows / 3;
-    int mainRowEnd = 2 * threshImage.rows / 3;
-
 	// Create vector containg location + class info
     // Each element contains these values (in this order): 
-    // class, x, y, width, height
+    // class, x, y, width, height, row
     // Note that x, y are for the top left corner of the image
 	vector< arma::imat > parseInfo;
 
@@ -303,18 +411,86 @@ int main(int argc, char** argv) {
 
     for (int i = 0; i < contours.size(); i++) {
         parseInfo[i][0] = outputMat.at<float>(i, 0);
+        //cout << parseInfo[i] << endl;
     }
 
     // Sort horizontally
     sort(parseInfo.begin(), parseInfo.end(), compareHoriz);
 
     // Print result
+    /*
     for (int i = 0; i < parseInfo.size(); i++) {
-        //cout << parseInfo[i] << endl;
-        isInMainRow(mainRowStart, mainRowEnd, parseInfo[i][2], parseInfo[i][2] + parseInfo[i][4]);
+        cout << parseInfo[i] << endl;
+    } */   
+
+    // Compute the middle 1/3 of the image
+    // Used later in parsing
+    int mainRowStart = threshImage.rows / 3;
+    int mainRowEnd = 2 * threshImage.rows / 3;
+
+    // Rows contains values in the order
+    // id, above(index), below(index), start of above, start of main, end of main, end of below
+    vector< arma::imat > rows;
+    rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows} );
+    int rowCounter = 1;
+    
+    vector< string > result;
+
+    // Iterate over things and check if they're in the main row
+    for (int i = 0; i < parseInfo.size(); i++) {
+        //bool inMain = isInMainRow(mainRowStart, mainRowEnd, parseInfo[i][2], parseInfo[i][2] + parseInfo[i][4]);
+        int index = findRow(rows, parseInfo, i, result, rowCounter);
+
+
+        cout << "Symbols\n" << endl;
+        for (int i = 0; i < parseInfo.size(); i++) {
+            cout << parseInfo[i] << endl;
+        }
+        //cout << "Vector Index, Row Index: " << i << ", " << index << endl;
     }
 
+    /**
+    // Need to apply checks to the final element
+    if (result.size() != parseInfo.size()) {
+
+        for (int i = 0; i < rows.size(); i++) {
+        // Iterate over all other rows and see if any were above/below this
+            for (int j = 0; j < rows.size(); j++) {
+                //cout << rows[j] << endl;
+                if (rows[j][1] == i) {
+                    //cout << "Found a row at " << j << endl;
+                    cout << "Rows: " << rows[j] << endl;
+                    for (int k = 0; k < parseInfo.size(); k++) {
+                        if (parseInfo[k][5] == rows[j][0]) {
+                            cout << "Found a matching symbol at " << k << endl;
+                            cout << rows[j][1] << endl;
+                            result[rowCounter - 1] += "^" + to_string(parseInfo[k][0]) + " ";
+                            parseInfo[k][5] = -1;
+                            //cout << "Temp: " << temp << endl;
+                        }
+                    }
+
+                }
+            } 
+        }
+    }*/
+
+    /* 
+    cout << "Rows\n" << endl;
+    for (int i = 0; i < rows.size(); i++) {
+        cout << rows[i] << endl;
+    }
+
+    cout << "Symbols\n" << endl;
+    for (int i = 0; i < parseInfo.size(); i++) {
+        cout << parseInfo[i] << endl;
+    }*/
     
+
+    for (int i = 0; i < result.size(); i++) {
+        cout << result[i];
+    }
+    cout << endl;
 
     // Display time taken
 	cout << timer.toc() << endl;

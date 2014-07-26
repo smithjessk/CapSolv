@@ -20,7 +20,7 @@ using namespace arma;
 using namespace std;
 
 // Applies a threshold that accounts for various intensities
-cv::Mat preProcessing(cv::Mat img, bool displayImgs = false) {
+cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
     // Initialization
     cout << "Applying preprocessing" << endl;
     cv::Mat mean;
@@ -28,11 +28,9 @@ cv::Mat preProcessing(cv::Mat img, bool displayImgs = false) {
 
     // Calculate the mean and standard deviation 
     cv::meanStdDev(img, mean, stddev);
-    cout << "Mean Intensity: " << mean.at<double>(0) << endl;
-    cout << "Standard Deviation of Intensity: " << stddev.at<double>(0) << endl;
-
+   
     // Determine lower threshold limit
-    double lowerLimit = mean.at<double>(0) - (1.5 * stddev.at<double>(0));
+    double lowerLimit = mean.at<double>(0) - (1.25 * stddev.at<double>(0));
 
     // Apply that threshold
     cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
@@ -50,7 +48,7 @@ cv::Mat preProcessing(cv::Mat img, bool displayImgs = false) {
 
 // Computes a length-64 feature vector representing the gradients of the image
 // Built in HOG not used because of size restrictions in place
-arma::umat HOG(cv::Mat img, bool displayImgs = false) {
+arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
     //cout << "HOG" << endl;
 
     // Used to determine how to resize
@@ -78,7 +76,7 @@ arma::umat HOG(cv::Mat img, bool displayImgs = false) {
     //cv::resize(img, img, cv::Size(32, 32));
     //scalingFactor = 1;
 
-    cv::medianBlur(img, img, 5);
+    //cv::medianBlur(img, img, 5);
 
     // Display the resized image
     if (displayImgs) {
@@ -111,7 +109,8 @@ arma::umat HOG(cv::Mat img, bool displayImgs = false) {
 
     // Array that holds magnitudes; Note that dimensions depend on scaling 
     // scaling factor defined above
-    arma::fmat magCells = fmat(32 * scalingFactor, 32 / scalingFactor, fill::zeros);
+    arma::fmat magCells = fmat(32 * scalingFactor, 32 / scalingFactor, 
+        fill::zeros);
 
     // Used to indicate starting points for iterating over the magCells
     int rowsIndex = 0, colsIndex = 0;
@@ -144,23 +143,22 @@ arma::umat HOG(cv::Mat img, bool displayImgs = false) {
 }
 
 // Finds the contours in the thresholded image
-vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original, bool displayImgs=false) {
-
+vector< arma::umat > analyzeContours(cv::Mat img, vector< arma::imat >& parseInfo, 
+    bool displayImgs = false) {
+    cout << "Analyzing contours" << endl;
     // Initialization
+
+    float imgArea = img.rows * img.cols;
+    vector< vector<Point> > contours;
 
     // To be returned and passed to SVM
     vector< arma::umat > validContours;
-
-    cout << "Analyzing contours" << endl;
-    float imgArea = img.rows * img.cols;
-    vector< vector<Point> > contours;
 
     cv::Mat img1 = img.clone();
 
     cv::Mat imgMean;
     cv::Mat imgStdDev;
     cv::meanStdDev(img1, imgMean, imgStdDev);
-    cout << "Image Mean " << imgMean << endl;
 
     // Find the contours
     cv::findContours(img, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
@@ -179,30 +177,28 @@ vector< arma::umat > analyzeContours(cv::Mat img, cv::Mat original, bool display
     // Iterate over contours
     for (int i = 0; i < contours.size(); i++) {
         temp = boundingRect(contours[i]);
+
         // Caluclate each contour's area
-        
         currArea = temp.width * temp.height;
         ratio = currArea / imgArea;
 
+
         // If it's big enough
-        if (ratio < 0.95 && ratio > 0.0003 && currArea >= 400) {
+        if (ratio < 2 && ratio > 0.0003 && currArea >= 400) {
             mask = cv::Mat(img1, temp);
-            cv::Mat mask2 = cv::Mat(original, temp);
+            cv::Mat mask2 = cv::Mat(img, temp);
             contourMean = cv::mean(mask);
 
-            //cout << contourMean << endl;
-            float zScore = (contourMean[0] - imgMean.at<double>(0)) / 
-                imgStdDev.at<double>(0);
-            float ratio = contourMean[0] / imgMean.at<double>(0);
-            
-            if (ratio < 0.85 && (ratio / currArea < 0.0003) ) {
-                validContours.push_back(HOG(mask, displayImgs));
+            float intensityRatio = contourMean[0] / imgMean.at<double>(0);
+            if (intensityRatio < 0.95 && (intensityRatio / currArea < 0.0003) ) {
+                validContours.push_back(ComputeHOG(mask, displayImgs));
+                arma::imat tempArr = {-1, temp.x, temp.y, temp.width, temp.height};
+                parseInfo.push_back(tempArr);
                 counter++;
             }
         }
     }
 
-    cout << counter << endl;
     return validContours;
 }
 
@@ -224,8 +220,10 @@ int main(int argc, char** argv ) {
         cv::Mat image = cv::imread(directory + "master" + num + ".jpg", 0);
         float number = stof(num);
 
-        cv::Mat threshImage = preProcessing(image, false);
-        vector< arma::umat > tempContours = analyzeContours(threshImage, image);
+        vector< arma::imat > parseInfo;
+
+        cv::Mat threshImage = preProcess(image, false);
+        vector< arma::umat > tempContours = analyzeContours(threshImage, parseInfo, false);
 
         contours.push_back(tempContours);
         responses.push_back(number);
@@ -261,12 +259,13 @@ int main(int argc, char** argv ) {
     CvSVM SVM;
     SVM.train(trainMat, responseMat, cv::Mat(), cv::Mat(), params);
 
+    /** 
     cout << "Testing SVM" << endl;
     cv::Mat testImage = cv::imread(
-        "../../evaluation/digit_training/masters/justDigits.jpg", 0);
-    cv::Mat threshTest = preProcessing(testImage, false);
+        "../../evaluation/examples/appropo.jpg", 0);
+    cv::Mat threshTest = preProcess(testImage, true);
 
-    vector< arma::umat > testContours = analyzeContours(threshTest, testImage, false);
+    vector< arma::umat > testContours = analyzeContours(threshTest, testImage, true);
 
     float testArray[testContours.size()][64];
     for (int i = 0; i < testContours.size(); i++) {
@@ -279,8 +278,9 @@ int main(int argc, char** argv ) {
 
     SVM.predict(testMat, predictionsMat);
     cout << predictionsMat;
+    */
+    
     SVM.save("svm_data.dat");
-
     cout << "Time: " << timer.toc() << endl;
 
     return 0;
