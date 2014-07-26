@@ -1,2 +1,0 @@
-/home/jess/Projects/CapSol/src/C++/CMakeFiles/DisplayImage.dir
-/home/jess/Projects/CapSol/src/C++/CMakeFiles/test.dir

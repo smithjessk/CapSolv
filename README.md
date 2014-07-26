@@ -1,23 +1,18 @@
 CapSol
 ======
 
-Soon enough, this won't be so messy. :)
+About
+------
 
-Basic pipeline: 
+CapSol is a computer vision engine that captures, parses, and solves printed mathematics. 
 
- - Load image
- 
- - preProcessing:
-	 - img = image (converted to grayscale if necessary)
-	 - tempAvg = average intensity of img
-	 - ret, thresh = threshold img at intensities 115, 255
-	 - avg = average intensity of thresh
-	 
- - analyzeContours:
-	 - contours = contours on thresh
-	 - imArea = thresh's area
-	 - For each contour,
-		 - Determine it's bounding rectangle and its area
-		 - ratio = current area / imArea
-		 - if (ratio < 0.95) and (ratio > 0.003) and (currArea >= 81)
-			 - crop the image from imgray and add it to rez
+It is distributed under the [MIT License.](https://github.com/smithjessk/CapSol/blob/master/LICENSE.md)
+
+Usage
+-----
+
+Note: Compiled using GCC on Linux Mint 17. Also, this probably won't work until we do some Make surgery. 
+
+To run the classification pipeline on an image, navigate to /src/C++ and run:
+
+    $ ./process {{your relative image path}}

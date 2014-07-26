@@ -6,7 +6,7 @@ typedef arma::Col<unsigned char> cvec;
 
 using namespace arma;
 
-class Contours;
+//class Contours;
 
 class Contours {
  private:
@@ -15,7 +15,11 @@ class Contours {
   cmat image_;
 
   // The co-ordinates of the corners of the bounding box for each contour.
+<<<<<<< HEAD
   umat corners_;
+=======
+  arma::umat corners;
+>>>>>>> 8c22c88acb8bae8437047b7d8bfbbafe611f7e93
 
   // Dimensions of the image upon removal of whitespace.
   unsigned int height_, width_;
@@ -27,7 +31,7 @@ class Contours {
   unsigned int num_contours_;
 
   // Maps values in image_ to the index of the contour they represent.
-  uvec map_;
+  arma::uvec map_;
 
  public:
   Contours(cv::Mat image) {
@@ -124,6 +128,7 @@ class Contours {
     // Finding the corners of the bounding box for each contour.
     corners_ = umat(4, num_contours_);
 
+<<<<<<< HEAD
     for (int counter = 0; counter < num_contours_; counter++) {
       int index = map_(counter);
       rows = find(sum(abs(image_ - index), 0) == 0);
@@ -134,6 +139,9 @@ class Contours {
       corners_(3, counter) = cols(cols.n_elem);
     }
   }
+=======
+ };
+>>>>>>> 8c22c88acb8bae8437047b7d8bfbbafe611f7e93
 
   cmat GetContour(int counter) const {
     int index = map_(counter);
