@@ -6,6 +6,7 @@
 paper/*
 evaluation/*
 src/CMakeFiles/*
+src/cmake-modules/*
 
 scratch.txt
 CMakeCache.txt
@@ -14,3 +15,4 @@ Makefile
 process
 test
 trainSVM
+cmake_install.cmake
