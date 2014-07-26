@@ -1,0 +1,4 @@
+/home/jess/Projects/CapSol/src/CMakeFiles/DisplayImage.dir
+/home/jess/Projects/CapSol/src/CMakeFiles/process.dir
+/home/jess/Projects/CapSol/src/CMakeFiles/test.dir
+/home/jess/Projects/CapSol/src/CMakeFiles/trainSVM.dir

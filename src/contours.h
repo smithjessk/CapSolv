@@ -15,7 +15,7 @@ class Contours {
   cmat image_;
 
   // The co-ordinates of the corners of the bounding box for each contour.
-  arma::umat corners;
+  arma::umat corners_;
 
   // Dimensions of the image upon removal of whitespace.
   unsigned int height_, width_;
@@ -63,46 +63,46 @@ class Contours {
     // Finding contours in the first column.
     for (int r = 1; r < image_.n_rows; r++)
       if (image_(r, 0) != 255)
-	if (image_(r - 1, 0) != 255)
-	  image_(r, 0) = image_(r - 1, 0);
-	else
-	  image_(r, 0) = contour_counter++;
+  if (image_(r - 1, 0) != 255)
+    image_(r, 0) = image_(r - 1, 0);
+  else
+    image_(r, 0) = contour_counter++;
 
     // Finding contours in the first row.
     for (int c = 1; c < image_.n_cols; c++)
       if (image_(0, c) != 255)
-	if (image_(0, c - 1) != 255)
-	  image_(0, c) = image_(0, c - 1);
-	else
-	  image_(0, c) = contour_counter++;
+  if (image_(0, c - 1) != 255)
+    image_(0, c) = image_(0, c - 1);
+  else
+    image_(0, c) = contour_counter++;
 
     // Finding contours everywhere else
     for (int c = 1; c < image_.n_cols; c++) {
       for (int r = 1; r < image_.n_rows; r++) {
-	if (image_(r, c) != 255) {
-	  if (image_(r - 1, c) != 255 && image_(r, c - 1) != 255) {
-	    // Meeting of contours.
-	    if (image_(r - 1, c) == image_(r, c - 1)) {
-	      image_(r, c) == image_(r - 1, c);
-	    } else {
-	      // Merging of contours.
-	      image_(r, c) = image_(r - 1, c);
-	      image_(span(0, r - 1), c).transform([&](unsigned char val) {
-		return (val == image_(r, c - 1)) ? image_(r - 1, c) : val;
-	      });
-	      image_.cols(0, c - 1).transform([&](unsigned char val) {
-		return (val == image_(r, c - 1)) ? image_(r - 1, c) : val;
-	      });
-	      missing.insert_rows(missing.n_elem, image_(r, c-1));
-	    }
-	  } else if (image_(r - 1, c) != 255) {
-	    image_(r, c) = image_(r - 1, c);
-	  } else if (image_(r, c - 1) != 255) {
-	    image_(r, c) = image_(r, c - 1);
-	  } else {
-	    image_(r, c) = contour_counter++;
-	  }
-	}
+  if (image_(r, c) != 255) {
+    if (image_(r - 1, c) != 255 && image_(r, c - 1) != 255) {
+      // Meeting of contours.
+      if (image_(r - 1, c) == image_(r, c - 1)) {
+        image_(r, c) == image_(r - 1, c);
+      } else {
+        // Merging of contours.
+        image_(r, c) = image_(r - 1, c);
+        image_(span(0, r - 1), c).transform([&](unsigned char val) {
+    return (val == image_(r, c - 1)) ? image_(r - 1, c) : val;
+        });
+        image_.cols(0, c - 1).transform([&](unsigned char val) {
+    return (val == image_(r, c - 1)) ? image_(r - 1, c) : val;
+        });
+        missing.insert_rows(missing.n_elem, image_(r, c-1));
+      }
+    } else if (image_(r - 1, c) != 255) {
+      image_(r, c) = image_(r - 1, c);
+    } else if (image_(r, c - 1) != 255) {
+      image_(r, c) = image_(r, c - 1);
+    } else {
+      image_(r, c) = contour_counter++;
+    }
+  }
       }
     }
 
@@ -116,9 +116,9 @@ class Contours {
     map_index = missing_index = 0;
     for (int counter = 0; counter < contour_counter; counter++) {
       if (missing(missing_index) == counter)
-	missing_index++;
+  missing_index++;
       else
-	map_(map_index++) = counter;
+  map_(map_index++) = counter;
     }
 
     // Finding the corners of the bounding box for each contour.
@@ -134,12 +134,12 @@ class Contours {
       corners_(3, counter) = cols(cols.n_elem);
     }
   }
- };
+
 
   cmat GetContour(int counter) const {
     int index = map_(counter);
     cmat contour =  image_.submat(corners_(0, index), corners_(1, index),
-				  corners_(2, index), corners_(3, index));
+          corners_(2, index), corners_(3, index));
     return contour.transform([&](unsigned char val) {
       return (val == index) ? 0 : 255;
     });

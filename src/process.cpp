@@ -441,15 +441,15 @@ int main(int argc, char** argv) {
         //bool inMain = isInMainRow(mainRowStart, mainRowEnd, parseInfo[i][2], parseInfo[i][2] + parseInfo[i][4]);
         int index = findRow(rows, parseInfo, i, result, rowCounter);
 
-
+        /*
         cout << "Symbols\n" << endl;
         for (int i = 0; i < parseInfo.size(); i++) {
             cout << parseInfo[i] << endl;
-        }
-        //cout << "Vector Index, Row Index: " << i << ", " << index << endl;
+        }*/
+        cout << "Vector Index, Row Index: " << i << ", " << index << endl;
     }
 
-    /**
+    
     // Need to apply checks to the final element
     if (result.size() != parseInfo.size()) {
 
@@ -473,7 +473,7 @@ int main(int argc, char** argv) {
                 }
             } 
         }
-    }*/
+    }
 
     /* 
     cout << "Rows\n" << endl;

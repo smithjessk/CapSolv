@@ -5,28 +5,12 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/ml/ml.hpp>
 #include <armadillo>
-
-#include "contours.h"
+//#include <contours.h>
 
 using namespace cv;
 using namespace arma;
 using namespace std;
-// Applies a threshold that accounts for various intensities
-cv::Mat preProcessing(cv::Mat img) {
-    // Initialization
-    cout << "Applying preprocessing" << endl;
-    cv::Mat mean;
-    cv::Mat stddev;
 
-<<<<<<< HEAD
-    // Calculate the mean and standard deviation 
-    cv::meanStdDev(img, mean, stddev);
-    cout << "Mean Intensity: " << mean.at<double>(0) << endl;
-    cout << "Standard Deviation of Intensity: " << stddev.at<double>(0) << endl;
-
-    // Determine lower threshold limit
-    double lowerLimit = mean.at<double>(0) - (1.5 * stddev.at<double>(0));
-=======
 string type2str(int type) {
   string r;
 
@@ -123,8 +107,8 @@ arma::umat HOG(cv::Mat img) {
 }
 
 int main(int argc, char** argv) {
-	// Read in image
-	cv::Mat image;
+    // Read in image
+    cv::Mat image;
     image = cv::imread( argv[1], 0);
 
     arma::umat hogData = HOG(image);
@@ -148,19 +132,6 @@ int main(int argc, char** argv) {
     SVM.load("svm_data.dat");
 
     cout << "Got done" << endl;
->>>>>>> 8c22c88acb8bae8437047b7d8bfbbafe611f7e93
 
-    // Apply that threshold
-    cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
-    return img;
-}
-
-int main(int argc, char** argv) {
-  cout << "Started" << endl;
-  // Read in image
-  cv::Mat image;
-  image = preProcessing(cv::imread( argv[1], 0));
-  Contours contours (image);
-  cout << "Got done" << endl;
-  return 0;
+    return 0;
 }

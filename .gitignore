@@ -5,7 +5,7 @@
 
 paper/*
 evaluation/*
-src/C++/CMakeFiles/*
+src/CMakeFiles/*
 
 scratch.txt
 CMakeCache.txt
