@@ -264,7 +264,7 @@ bool isInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contour
 
 
 int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int index, 
-    vector< string >& result, int& rowCounter) {
+    vector< string >& result, int& rowCounter, int& totalApplied) {
 
     /*
     cout << "Printing result: " << endl;
@@ -284,13 +284,13 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
         int mainDiff = 0;
         bool contained = isInMainRow(rows[i][4], rows[i][5], contour[2], contour[2] + contour[4], mainDiff);
         if (contained) {
-            cout << "Main" << endl;
+            //cout << "Main" << endl;
             parseInfo[index][5] = i;
 
-            // Go through the characters and choose the one that relates to this
+            // Go through the characters and choose the one(s) that relate(s) to this
             for (int j = 0; j < parseInfo.size(); j++) {
                 if (parseInfo[j][5] == i) {
-                    temp += to_string(parseInfo[j][0]) + " ";
+                    temp += to_string(parseInfo[j][0]);
                     parseInfo[j][5] = -1;
                     //cout << "Temp: " << temp << endl;
                 }
@@ -300,20 +300,38 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
 
             int indexOfLinked = -1;
 
+            // Need to count how far back to move all of the 'toApply' indices
+            int numberChildrenApplied = 0;
+
             // Iterate over all other rows and see if any were above/below this
             for (int j = 0; j < rows.size(); j++) {
                 //cout << rows[j] << endl;
                 if (rows[j][1] == i) {
+
                     for (int k = 0; k < parseInfo.size(); k++) {
                         if (parseInfo[k][5] == rows[j][0]) {
-                            result[rows[j][1]] += "^" + to_string(parseInfo[k][0]) + " ";
+
+                            cout << "Rows" << endl;
+                            for (int l = 0; l < rows.size(); l++) {
+                                cout << rows[l] << endl;
+                            }
+                            cout << "End Rows" << endl;
+
+                            result[rows[j][7]] += "^" + to_string(parseInfo[k][0]);
                             parseInfo[k][5] = -1;
                             indexOfLinked = j;
+                            numberChildrenApplied++;
                             //cout << "Temp: " << temp << endl;
                         }
                     }
                 }
             }
+            // Now move them back
+            for (int j = 0; j < rows.size(); j++) {
+                rows[j][7] -= numberChildrenApplied;
+            }
+            totalApplied += numberChildrenApplied;
+
             if (indexOfLinked != -1) {
                 rows.erase(rows.begin() + indexOfLinked);
             }
@@ -333,14 +351,14 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
         //cout << "Below" << belowDiff << endl;
 
         if (aboveDiff < belowDiff) {
-            cout << "Above" << endl;
+            //cout << "Above" << endl;
 
             // Add a new row with the same above limit
             // but a main row in the middle 1/3 of the previous row's 'above' zone
             rows.push_back( {rowCounter, i, -1, rows[i][3], 
                 (rows[i][4] - rows[i][3]) / 3, 
                 2 * (rows[i][4] - rows[i][3]) / 3,
-                rows[i][4]
+                rows[i][4], index - 1 - totalApplied
             } );
             rowCounter++;
             parseInfo[index][5] = rowCounter - 1;
@@ -350,7 +368,7 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
             return rowCounter - 1;
         }
         if (belowDiff < aboveDiff) {
-            cout << "Below" << endl;
+            //cout << "Below" << endl;
             parseInfo[index][5] = i;
 
             // TODO: COPY CODE FROM ABOVE
@@ -429,24 +447,30 @@ int main(int argc, char** argv) {
     int mainRowEnd = 2 * threshImage.rows / 3;
 
     // Rows contains values in the order
-    // id, above(index), below(index), start of above, start of main, end of main, end of below
+    // id, above(index), below(index), start of above, start of main, end of main,
+    // end of below, result index at which to apply them
+
     vector< arma::imat > rows;
-    rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows} );
+    rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows, 0} );
     int rowCounter = 1;
     
     vector< string > result;
+    int totalApplied = 0;
 
     // Iterate over things and check if they're in the main row
     for (int i = 0; i < parseInfo.size(); i++) {
         //bool inMain = isInMainRow(mainRowStart, mainRowEnd, parseInfo[i][2], parseInfo[i][2] + parseInfo[i][4]);
-        int index = findRow(rows, parseInfo, i, result, rowCounter);
-
+        int index = findRow(rows, parseInfo, i, result, rowCounter, totalApplied);
+        for (int j = 0; j < result.size(); j++) {
+            cout << result[j] << " ";
+        }
+        cout << endl;
         /*
         cout << "Symbols\n" << endl;
         for (int i = 0; i < parseInfo.size(); i++) {
             cout << parseInfo[i] << endl;
         }*/
-        cout << "Vector Index, Row Index: " << i << ", " << index << endl;
+        //cout << "Vector Index, Row Index: " << i << ", " << index << endl;
     }
 
     
@@ -488,7 +512,7 @@ int main(int argc, char** argv) {
     
 
     for (int i = 0; i < result.size(); i++) {
-        cout << result[i];
+        cout << result[i] << " ";
     }
     cout << endl;
 
