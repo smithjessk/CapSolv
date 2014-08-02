@@ -41,7 +41,7 @@ class Contours {
     uvec cols = find(sum(255 - arma, 0) != 0);
     // cout << rows << endl;
     // cout << cols << endl;
-    if (rows.n_elem == 0 || cols.n_elm == 0) {
+    if (rows.n_elem == 0 || cols.n_elem == 0) {
       cout << "No black pixels." << endl;
       throw 1;
     }
