@@ -3,6 +3,7 @@
 
 typedef arma::Mat<unsigned char> cmat;
 typedef arma::Col<unsigned char> cvec;
+typedef arma::Row<unsigned char> crow;
 
 using namespace arma;
 
@@ -39,8 +40,10 @@ class Contours {
     cout << "Cols: " << arma.n_cols << " Rows: " << arma.n_rows << endl;
     uvec rows = find(sum(255 - arma, 1) != 0);
     uvec cols = find(sum(255 - arma, 0) != 0);
-    rowvec sums = sum(255 - arma, 0);
-    cout << sums << endl;
+    crow sums = sum(255 - arma, 0);
+    for (int counter = 0; counter < arma.n_cols; counter++)
+      cout << sums(counter) << " ";
+    cout << endl;
     // cout << rows << endl;
     // cout << cols << endl;
     if (rows.n_elem == 0 || cols.n_elem == 0) {
