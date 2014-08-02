@@ -122,8 +122,12 @@ class Contours {
 
     num_contours_ = contour_counter - missing.n_elem;
 
+    cout << "Number contours: " << num_contours << endl;
+
     // Creating the map.
     map_ = uvec(num_contours_);
+
+    cout << "Here3.5" << endl;
 
     // Index of missing currently being considered.
     int map_index, missing_index;
