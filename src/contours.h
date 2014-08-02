@@ -41,9 +41,6 @@ class Contours {
     uvec rows = find(sum(255 - arma, 1) != 0);
     uvec cols = find(sum(255 - arma, 0) != 0);
     crow sums = sum(255 - arma, 0);
-    for (int counter = 0; counter < arma.n_cols; counter++)
-      cout << sums(counter) << " ";
-    cout << endl;
     // cout << rows.t() << endl;
     // cout << cols.t() << endl;
     // if (rows.n_elem == 0 || cols.n_elem == 0) {
@@ -52,10 +49,6 @@ class Contours {
     // }
     cout << "# filled rows: " << rows.n_elem << " first: " << rows(0) << " last: " << rows(rows.n_elem - 1) << endl;
     cout << "# filled cols: " << cols.n_elem << " first: " << cols(0) << " last: " << cols(cols.n_elem - 1) << endl;
-    cout << rows(0) << endl;
-    cout << rows(rows.n_elem - 1) << endl;
-    cout << cols(0) << endl;
-    cout << cols(cols.n_elem - 1) << endl;
     image_ = arma.submat(rows(0), cols(0),
                          rows(rows.n_elem - 1), cols(cols.n_elem - 1));
     cout << "Image cropped" << endl;
