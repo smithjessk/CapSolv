@@ -59,7 +59,7 @@ class Contours {
     image_ = arma.submat(rows(0), rows(rows.n_elem - 1),
                          cols(0), cols(cols.n_elem - 1));
     cout << "Image cropped" << endl;
-    cout << "Cols: " << arma.n_cols << " Rows: " << arma.n_rows << endl;
+    cout << "Cols: " << image_.n_cols << " Rows: " << image_.n_rows << endl;
 
 
     // The current number of contours discovered.
@@ -121,8 +121,9 @@ class Contours {
     cout << "Here3" << endl;
 
     num_contours_ = contour_counter - missing.n_elem;
-
-    cout << "Number contours: " << num_contours << endl;
+    cout << "contour_counter: " << (int) contour_counter << endl;
+    cout << "missing.n_elem: " << missing.n_elem << endl;
+    cout << "Number contours: " << num_contours_ << endl;
 
     // Creating the map.
     map_ = uvec(num_contours_);
