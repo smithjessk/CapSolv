@@ -43,7 +43,8 @@ class Contours {
     // cout << cols << endl;
     if (rows.n_elem == 0)
       throw 1;
-    cout << "# filled rows: " << rows.n_elem << "\n# filled columns: " << cols.n_elem << endl;
+    cout << "# filled rows: " << rows.n_elem << " first: " << rows(0) << " last: " << rows(rows.n_elem) << endl;
+    cout << "# filled cols: " << cols.n_elem << " first: " << cols(0) << " last: " << cols(rows.n_elem) << endl;
     cout << rows(0) << endl;
     cout << rows(rows.n_elem - 1) << endl;
     cout << cols(0) << endl;
