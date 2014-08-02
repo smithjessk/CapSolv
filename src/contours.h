@@ -41,7 +41,7 @@ class Contours {
     uvec rows = find(sum(255 - arma, 1) != 0);
     uvec cols = find(sum(255 - arma, 0) != 0);
     crow sums = sum(255 - arma, 0);
-    // cout << rows.t() << endl;
+        // cout << rows.t() << endl;
     // cout << cols.t() << endl;
     // if (rows.n_elem == 0 || cols.n_elem == 0) {
     //   cout << "No black pixels." << endl;
@@ -114,6 +114,12 @@ class Contours {
     cout << "Here3" << endl;
 
     num_contours_ = contour_counter - missing.n_elem;
+    for (int i = 0; i < image_.n_rows; i++) {
+      for (int j = 0; j < image_.n_cols; j++) {
+        cout << 255 - (int) image_(i, j) << " ";
+      }
+      cout << endl;
+    }
     cout << "contour_counter: " << (int) contour_counter << endl;
     cout << "missing.n_elem: " << missing.n_elem << endl;
     cout << "Number contours: " << num_contours_ << endl;
