@@ -39,7 +39,8 @@ class Contours {
     cout << "Cols: " << arma.n_cols << " Rows: " << arma.n_rows << endl;
     uvec rows = find(sum(255 - arma, 1) != 0);
     uvec cols = find(sum(255 - arma, 0) != 0);
-    cout << sum(255 - arma, 0) << endl;
+    rowvec sums = sum(255 - arma, 0);
+    cout << sums << endl;
     // cout << rows << endl;
     // cout << cols << endl;
     if (rows.n_elem == 0 || cols.n_elem == 0) {
