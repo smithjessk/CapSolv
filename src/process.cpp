@@ -1,9 +1,11 @@
 // Runs the complete pipeline on an image specified using a relative path
+// Requires enum.tsv to be present in ./../
 
 // Standard Imports
 #include <iostream>
 #include <stdio.h>
 #include <vector>
+#include <fstream>
 
 // Armadillo
 #include <armadillo>
@@ -21,6 +23,22 @@
 using namespace cv;
 using namespace arma;
 using namespace std;
+
+// Looks through the enumeration in enum.tsv and finds the symbol that matches 
+// the appropriate number
+string findSymbol(int num) {
+    string index = "", symbol = "";
+    ifstream infile("../enum.tsv");
+
+    while (infile >> index >> symbol) {
+        if (to_string(num) == index) {
+            cout << symbol << endl;
+            break;
+        }
+    }
+
+    return symbol;
+}
 
 // Applies a threshold that accounts for various intensities
 cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
@@ -290,7 +308,9 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
             // Go through the characters and choose the one(s) that relate(s) to this
             for (int j = 0; j < parseInfo.size(); j++) {
                 if (parseInfo[j][5] == i) {
-                    temp += to_string(parseInfo[j][0]);
+                    int symbolIndex = static_cast<int>(parseInfo[j][0]);
+                    //temp += to_string(parseInfo[j][0]);
+                    temp += findSymbol(symbolIndex);
                     parseInfo[j][5] = -1;
                     //cout << "Temp: " << temp << endl;
                 }
@@ -313,11 +333,13 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
 
                             cout << "Rows" << endl;
                             for (int l = 0; l < rows.size(); l++) {
-                                cout << rows[l] << endl;
+                               cout << rows[l] << endl;
                             }
                             cout << "End Rows" << endl;
 
-                            result[rows[j][7]] += "^" + to_string(parseInfo[k][0]);
+                            int symbolIndex = static_cast<int>(parseInfo[k][0]);
+                            //result[rows[j][7]] += "^" + to_string(parseInfo[k][0]);
+                            result[rows[j][7]] += "^" + findSymbol(symbolIndex);
                             parseInfo[k][5] = -1;
                             indexOfLinked = j;
                             numberChildrenApplied++;
@@ -461,10 +483,11 @@ int main(int argc, char** argv) {
     for (int i = 0; i < parseInfo.size(); i++) {
         //bool inMain = isInMainRow(mainRowStart, mainRowEnd, parseInfo[i][2], parseInfo[i][2] + parseInfo[i][4]);
         int index = findRow(rows, parseInfo, i, result, rowCounter, totalApplied);
-        for (int j = 0; j < result.size(); j++) {
-            cout << result[j] << " ";
-        }
-        cout << endl;
+
+        //for (int j = 0; j < result.size(); j++) {
+        //    cout << result[j] << " ";
+        //}
+        //cout << endl;
         /*
         cout << "Symbols\n" << endl;
         for (int i = 0; i < parseInfo.size(); i++) {

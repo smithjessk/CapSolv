@@ -1,0 +1,14 @@
+LINUX
+
+http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html
+
+Packages installed (other ones probably needed): 
+libavcodec-dev, libavformat-dev, libswscale-dev, etc: all ones that are not optional
+
+Download .zip from their website
+Unzip
+Navigate to downloads
+mkdir tmp and enter
+cmake <path of unzipped library>
+make
+sudo make install
