@@ -56,8 +56,8 @@ class Contours {
     cout << rows(rows.n_elem - 1) << endl;
     cout << cols(0) << endl;
     cout << cols(cols.n_elem - 1) << endl;
-    image_ = arma.submat(rows(0), rows(rows.n_elem - 1),
-                         cols(0), cols(cols.n_elem - 1));
+    image_ = arma.submat(rows(0), cols(0),
+                         rows(rows.n_elem - 1), cols(cols.n_elem - 1));
     cout << "Image cropped" << endl;
     cout << "Cols: " << image_.n_cols << " Rows: " << image_.n_rows << endl;
 
