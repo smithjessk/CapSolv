@@ -454,7 +454,9 @@ int main(int argc, char** argv) {
     vector< arma::umat > contours = analyzeContours(threshImage, parseInfo, false);
 
     // Pass the contours into an array of floats
+    // Only done to simplify the creation of the inputMat for the SVM
     float contourArray[contours.size()][64];
+
     for (int i = 0; i < contours.size(); i++) {
         for (int j = 0; j < 64; j++) {
             contourArray[i][j] = contours[i][j];
@@ -505,7 +507,7 @@ int main(int argc, char** argv) {
     // Iterate over things and check if they're in the main row
     for (int i = 0; i < parseInfo.size(); i++) {
     //bool inMain = isInMainRow(mainRowStart, mainRowEnd, parseInfo[i][2], parseInfo[i][2] + parseInfo[i][4]);
-        int index = findRow(rows, parseInfo, i, result, rowCounter, totalApplied);
+    int index = findRow(rows, parseInfo, i, result, rowCounter, totalApplied);
 
     //for (int j = 0; j < result.size(); j++) {
     //    cout << result[j] << " ";
