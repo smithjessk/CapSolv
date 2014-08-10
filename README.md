@@ -26,4 +26,8 @@ To run the classification pipeline on an image, navigate to /src/C++ and run:
 
 ## Contact
 
+<<<<<<< HEAD
 For any questions or comments, feel free to email <smith.jessk@gmail.com> or <jonathanmclaus@gmail.com>.
+=======
+For any questions or comments, feel free to email <smith.jessk@gmail.com> or <jonathanmclaus@gmail.com>.
+>>>>>>> 8da3ebae1bd89ebbe13a7d3aeadbc410bf613dcb
