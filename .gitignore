@@ -5,6 +5,7 @@
 
 paper/*
 evaluation/*
+site/*
 src/CMakeFiles/*
 src/cmake-modules/*
 
