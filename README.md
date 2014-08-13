@@ -1,10 +1,10 @@
-# CapSol
+# CapSolv
 
 ## About
 
-CapSol is a computer vision engine that captures, parses, and solves printed mathematics. 
+CapSolv is a computer vision engine that captures, parses, and solves printed mathematics. 
 
-It is distributed under the [MIT License.](https://github.com/smithjessk/CapSol/blob/master/LICENSE.md)
+It is distributed under the [MIT License.](https://github.com/smithjessk/CapSolv/blob/master/LICENSE.md)
 
 ## Usage
 
