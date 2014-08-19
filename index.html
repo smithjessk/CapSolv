@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>CapSol</title>
+    <title>CapSolv by smithjessk</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
@@ -15,38 +15,54 @@
   <body>
     <div class="wrapper">
       <header>
-        <h1>CapSol</h1>
+        <h1>CapSolv</h1>
         <p>Capture + Solve</p>
 
-        <p class="view"><a href="https://github.com/smithjessk/CapSol">View the Project on GitHub <small>smithjessk/CapSol</small></a></p>
+        <p class="view"><a href="https://github.com/smithjessk/CapSolv">View the Project on GitHub <small>smithjessk/CapSolv</small></a></p>
 
 
         <ul>
-          <li><a href="https://github.com/smithjessk/CapSol/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/smithjessk/CapSol/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/smithjessk/CapSol">View On <strong>GitHub</strong></a></li>
+          <li><a href="https://github.com/smithjessk/CapSolv/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/smithjessk/CapSolv/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/smithjessk/CapSolv">View On <strong>GitHub</strong></a></li>
         </ul>
       </header>
       <section>
         <h1>
-<a name="capsol" class="anchor" href="#capsol"><span class="octicon octicon-link"></span></a>CapSol</h1>
+<a name="capsolv" class="anchor" href="#capsolv"><span class="octicon octicon-link"></span></a>CapSolv</h1>
 
 <h2>
 <a name="about" class="anchor" href="#about"><span class="octicon octicon-link"></span></a>About</h2>
 
-<p>CapSol is a computer vision engine that captures, parses, and solves printed mathematics. </p>
+<p>CapSolv is a computer vision engine that captures, parses, and solves printed mathematics. </p>
 
-<p>It is distributed under the <a href="https://github.com/smithjessk/CapSol/blob/master/LICENSE.md">MIT License.</a></p>
+<p>It is distributed under the <a href="https://github.com/smithjessk/CapSolv/blob/master/LICENSE.md">MIT License.</a></p>
 
 <h2>
 <a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
 
-<p>Note: Compiled using GCC on Linux Mint 17. Also, this probably won't work until we do some Make surgery. </p>
+<p>Note: Compiled using GCC on Linux Mint 17. Also, this probably won't work for other systems until we do some Make surgery. </p>
 
-<p>To run the classification pipeline on an image, navigate to /src/C++ and run:</p>
+<p>To run the classification pipeline on an image, navigate to /src/ and run:</p>
 
 <pre><code>$ ./process {{your relative image path}}
 </code></pre>
+
+<h2>
+<a name="pipeline" class="anchor" href="#pipeline"><span class="octicon octicon-link"></span></a>Pipeline</h2>
+
+<ol>
+<li>Read in the image in grayscale</li>
+<li>Threshold the image to binary, with the boundary intensity being 1.25 standard deviations below the mean intensity (see <a href="http://docs.opencv.org/doc/tutorials/imgproc/threshold/threshold.html">the OpenCV documentation</a>; we use <code>cv::THRESH_BINARY</code>)</li>
+<li>Find and record the contours in the image</li>
+<li>For each contour, compute its descriptors (from Histogram of Ordered Gradients)</li>
+<li>Pass each contour's descriptors to the Support Vector Machine and obtain a character (e.g., 0, a, +, integral sign)</li>
+<li>Parse the expression</li>
+<li>Return the resulting string</li>
+</ol><h2>
+<a name="contact" class="anchor" href="#contact"><span class="octicon octicon-link"></span></a>Contact</h2>
+
+<p>For any questions or comments, feel free to email <a href="mailto:smith.jessk@gmail.com">smith.jessk@gmail.com</a> or <a href="mailto:jonathanmclaus@gmail.com">jonathanmclaus@gmail.com</a>.</p>
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/smithjessk">smithjessk</a></p>
