@@ -1,21 +1,22 @@
 /**
-*  Requires enum.tsv to be present in ./../
-
-*  Runs the complete pipeline on an image specified using a relative path
-*  Pipeline details available in ../README.md
-* 
-*
-*  @author Jess Smith <smith.jessk@gmail.com>
-*  @copyright 2014 Jess Smith
-*  @license MIT
+ *  @author Jess Smith <smith.jessk@gmail.com>
+ *  @copyright 2014 Jess Smith
+ *  @license MIT
+ *
+ *  Runs the complete pipeline on an image specified using a relative path
+ *  Pipeline details available in ../README.md
+ *
+ *  Requires enum.tsv to be present in ./../
 */
 
 /** 
-*  TODO:
-*  Implement better alg. than totalApplied to place exp/sub in right spots
-*  Fully document parsing alg.
-*  Update parsing alg to use rows.h
-*/
+ *  TODO:
+ *   Implement better alg. than totalApplied to place exp/sub in right spots
+ *   Fully document parsing alg.
+ *   Update parsing alg to use rows.h
+ *   Add disambiguation for edge case where to characters start at the same spot
+ *       and have the same width
+ */
 
 // Standard Dependencies
 #include <iostream>
@@ -35,16 +36,16 @@
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/ml/ml.hpp>
 
-// CapSol Dependencies
-#include "row.h"
+// CapSolv Dependencies
+#include "parseRow.h"
 
-    // Conflicts created on Mat
+// Conflicts created on Mat
 using namespace cv;
 using namespace arma;
 using namespace std;
 
-    // Looks through the enumeration in enum.tsv and finds the symbol that matches 
-    // the appropriate number
+// Looks through the enumeration in enum.tsv and finds the symbol that matches 
+// the appropriate number
 string findSymbol(int num) {
     string index = "", symbol = "";
     ifstream infile("../enum.tsv");
@@ -59,7 +60,7 @@ string findSymbol(int num) {
     return symbol;
 }
 
-    // Applies a threshold that accounts for various intensities
+// Applies a threshold that accounts for various intensities
 cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
     // Initialization
     cout << "Applying preprocessing" << endl;
@@ -86,8 +87,8 @@ cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
     return img;
 }
 
-    // Computes a length-64 feature vector representing the gradients of the image
-    // Built in HOG not used because of size restrictions in place
+// Computes a length-64 feature vector representing the gradients of the image
+// Built in HOG not used because of size restrictions in place
 arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
     //cout << "HOG" << endl;
 
@@ -182,7 +183,7 @@ arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
     return result;
 }
 
-    // Finds the contours in the thresholded image
+// Finds the contours in the thresholded image
 vector< arma::umat > analyzeContours(cv::Mat img, vector< arma::imat >& parseInfo, 
     bool displayImgs = false) {
     cout << "Analyzing contours" << endl;
@@ -247,8 +248,8 @@ vector< arma::umat > analyzeContours(cv::Mat img, vector< arma::imat >& parseInf
     return validContours;
 }
 
-    // Loads and evaluates the SVM on inputMat
-    // Predictions are returned in outputMat
+// Loads and evaluates the SVM on inputMat
+// Predictions are returned in outputMat
 cv::Mat predict(cv::Mat inputMat, cv::Mat outputMat) {
     // Setting up SVM
     CvSVMParams params;
@@ -267,9 +268,9 @@ cv::Mat predict(cv::Mat inputMat, cv::Mat outputMat) {
 }
 
 
-    // Compares the x values of the contours' top-left corners
-    // If those are equal, determine which one ends first and put that first
-    // Note that both imats should be elements of parseInfo
+// Compares the x values of the contours' top-left corners
+// If those are equal, determine which one ends first and put that first
+// Note that both imats should be elements of parseInfo
 bool compareHoriz(arma::imat a, arma::imat b) {
     if (a[1] == b[1]) {
         return (a[1] + a[3]) < (b[1] + b[3]);
@@ -277,7 +278,7 @@ bool compareHoriz(arma::imat a, arma::imat b) {
     return a[1] < b[1];
 }
 
-    // Checks if a contour is in the main row 
+// Checks if a contour is in the main row 
 bool isInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contourEnd, int& diff) {
 
     if ( (mainRowStart > contourStart) && (mainRowEnd < contourEnd) ) { // If the contour contains the entire main row
@@ -299,29 +300,17 @@ bool isInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contour
     return true;
 }
 
-
+// Finds the row to which a particular symbol belongs
 int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int index, 
     vector< string >& result, int& rowCounter, int& totalApplied) {
 
-    /*
-    cout << "Printing result: " << endl;
-    for (int i = 0; i < result.size(); i++) {
-        cout << result[i];
-    }
-    cout << endl;*/
-
     string temp = "";
-
     arma::imat contour = parseInfo[index];
 
-    //cout << "Symbol: " << contour[0] << endl;
-
     for (int i = 0; i < rows.size(); i++) {
-        //cout << "Main";
         int mainDiff = 0;
         bool contained = isInMainRow(rows[i][4], rows[i][5], contour[2], contour[2] + contour[4], mainDiff);
         if (contained) {
-            //cout << "Main" << endl;
             parseInfo[index][5] = i;
 
             // Go through the characters and choose the one(s) that relate(s) to this
@@ -331,12 +320,10 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
                     //temp += to_string(parseInfo[j][0]);
                     temp += findSymbol(symbolIndex);
                     parseInfo[j][5] = -1;
-                    //cout << "Temp: " << temp << endl;
                 }
             }
 
             // Need to iterate over and close all rows that relate to this
-
             int indexOfLinked = -1;
 
             // Need to count how far back to move all of the 'toApply' indices
@@ -344,7 +331,6 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
 
             // Iterate over all other rows and see if any were above/below this
             for (int j = 0; j < rows.size(); j++) {
-                //cout << rows[j] << endl;
                 if (rows[j][1] == i) {
 
                     for (int k = 0; k < parseInfo.size(); k++) {
@@ -352,9 +338,9 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
 
                             cout << "Rows" << endl;
                             for (int l = 0; l < rows.size(); l++) {
-                             cout << rows[l] << endl;
-                         }
-                         cout << "End Rows" << endl;
+                                cout << rows[l] << endl;
+                            }
+                            cout << "End Rows" << endl;
 
                          int symbolIndex = static_cast<int>(parseInfo[k][0]);
                             //result[rows[j][7]] += "^" + to_string(parseInfo[k][0]);
@@ -362,14 +348,14 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
                          parseInfo[k][5] = -1;
                          indexOfLinked = j;
                          numberChildrenApplied++;
-                            //cout << "Temp: " << temp << endl;
-                     }
-                 }
-             }
-         }
-            // Now move them back
-         for (int j = 0; j < rows.size(); j++) {
-            rows[j][7] -= numberChildrenApplied;
+                    }
+                }
+            }
+        }
+
+        // Now move them back   
+        for (int j = 0; j < rows.size(); j++) {
+           rows[j][7] -= numberChildrenApplied;
         }
         totalApplied += numberChildrenApplied;
 
@@ -377,25 +363,22 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
             rows.erase(rows.begin() + indexOfLinked);
         }
         result.push_back(temp);
+
         return i;
     }
 }
 
-    // Check if it's above
+// Check if it's above
 for (int i = 0; i < rows.size(); i++) {
     int aboveDiff = 0, belowDiff = 0;
 
     bool containedAbove = isInMainRow(rows[i][3], rows[i][4], contour[2], contour[2] + contour[4], aboveDiff);
     bool containedBelow = isInMainRow(rows[i][5], rows[i][6], contour[2], contour[2] + contour[4], belowDiff);
 
-        //cout << "Above" << aboveDiff << endl;
-        //cout << "Below" << belowDiff << endl;
-
     if (aboveDiff < belowDiff) {
-            //cout << "Above" << endl;
+        // Add a new row with the same above limit
+        // but a main row in the middle 1/3 of the previous row's 'above' zone
 
-            // Add a new row with the same above limit
-            // but a main row in the middle 1/3 of the previous row's 'above' zone
         rows.push_back( {rowCounter, i, -1, rows[i][3], 
             (rows[i][4] - rows[i][3]) / 3, 
             2 * (rows[i][4] - rows[i][3]) / 3,
@@ -404,32 +387,14 @@ for (int i = 0; i < rows.size(); i++) {
         rowCounter++;
         parseInfo[index][5] = rowCounter - 1;
 
-            //cout << "i: " << i << ", " << parseInfo[index][5] << endl;
-
         return rowCounter - 1;
     }
     if (belowDiff < aboveDiff) {
-            //cout << "Below" << endl;
         parseInfo[index][5] = i;
 
-            // TODO: COPY CODE FROM ABOVE
+        // TODO: COPY CODE FROM ABOVE
         return i;
     }
-        /*
-        int contourMean = contour[2] + contour[4] / 2;
-        int rowMean = (rows[i][4] + rows[i][5]) / 2;
-
-        if (contourMean < rowMean) {
-            cout << "Above" << endl;
-            // Create a new arma::imat
-            rows.push_back( {rows.size(), i, -1, 
-                -1, } );
-            return i;
-        } else if (contourMean > rowMean) {
-            cout << "Below" << endl;
-            return i;
-        }
-        */
     }
 }
 
@@ -492,9 +457,13 @@ int main(int argc, char** argv) {
     // Rows contains values in the order
     // id, above(index), below(index), start of above, start of main, end of main,
     // end of below, result index at which to apply them
-    vector< arma::imat > rows;
+    vector<arma::imat> rows;
     rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows, 0} );
     int rowCounter = 1;
+
+    // Vector of rows for parsing
+    vector<ParseRow> rowObjs;
+    rowObjs.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows, 0});
 
     // The final string derived from parsing
     // Is a vector b/c this allows easy addition of exponents and subscripts
@@ -506,58 +475,32 @@ int main(int argc, char** argv) {
 
     // Iterate over things and check if they're in the main row
     for (int i = 0; i < parseInfo.size(); i++) {
-    //bool inMain = isInMainRow(mainRowStart, mainRowEnd, parseInfo[i][2], parseInfo[i][2] + parseInfo[i][4]);
-    int index = findRow(rows, parseInfo, i, result, rowCounter, totalApplied);
-
-    //for (int j = 0; j < result.size(); j++) {
-    //    cout << result[j] << " ";
-    //}
-    //cout << endl;
-    /*
-    cout << "Symbols\n" << endl;
-    for (int i = 0; i < parseInfo.size(); i++) {
-        cout << parseInfo[i] << endl;
-    }*/
-    //cout << "Vector Index, Row Index: " << i << ", " << index << endl;
+        int index = findRow(rows, parseInfo, i, result, rowCounter, totalApplied);
     }
-
 
     // Need to apply checks to the final element
-    if (result.size() != parseInfo.size()) {
-
-        for (int i = 0; i < rows.size(); i++) {
-        // Iterate over all other rows and see if any were above/below this
-            for (int j = 0; j < rows.size(); j++) {
-                //cout << rows[j] << endl;
-                if (rows[j][1] == i) {
-                    //cout << "Found a row at " << j << endl;
-                    cout << "Rows: " << rows[j] << endl;
-                    for (int k = 0; k < parseInfo.size(); k++) {
-                        if (parseInfo[k][5] == rows[j][0]) {
-                            cout << "Found a matching symbol at " << k << endl;
-                            cout << rows[j][1] << endl;
-                            result[rowCounter - 1] += "^" + to_string(parseInfo[k][0]) + " ";
-                            parseInfo[k][5] = -1;
-                            //cout << "Temp: " << temp << endl;
+        if (result.size() != parseInfo.size()) {
+            for (int i = 0; i < rows.size(); i++) {
+            // Iterate over all other rows and see if any were above/below this
+                for (int j = 0; j < rows.size(); j++) {
+                    //cout << rows[j] << endl;
+                    if (rows[j][1] == i) {
+                        //cout << "Found a row at " << j << endl;
+                        cout << "Rows: " << rows[j] << endl;
+                        for (int k = 0; k < parseInfo.size(); k++) {
+                            if (parseInfo[k][5] == rows[j][0]) {
+                                cout << "Found a matching symbol at " << k << endl;
+                                cout << rows[j][1] << endl;
+                                result[rowCounter - 1] += "^" + to_string(parseInfo[k][0]) + " ";
+                                parseInfo[k][5] = -1;
+                                //cout << "Temp: " << temp << endl;
+                            }
                         }
+
                     }
-
-                }
-            } 
+                } 
+            }
         }
-    }
-
-    /* 
-    cout << "Rows\n" << endl;
-    for (int i = 0; i < rows.size(); i++) {
-        cout << rows[i] << endl;
-    }
-
-    cout << "Symbols\n" << endl;
-    for (int i = 0; i < parseInfo.size(); i++) {
-        cout << parseInfo[i] << endl;
-    }*/
-
 
     for (int i = 0; i < result.size(); i++) {
         cout << result[i] << " ";
