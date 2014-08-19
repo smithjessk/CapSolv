@@ -10,7 +10,7 @@ It is distributed under the [MIT License.](https://github.com/smithjessk/CapSolv
 
 Note: Compiled using GCC on Linux Mint 17. Also, this probably won't work for other systems until we do some Make surgery. 
 
-To run the classification pipeline on an image, navigate to /src/C++ and run:
+To run the classification pipeline on an image, navigate to /src/ and run:
 
     $ ./process {{your relative image path}}
 
