@@ -11,8 +11,9 @@ src/cmake-modules/*
 
 scratch.txt
 CMakeCache.txt
-DisplayImage
 Makefile
+scratch_code.cpp
+DisplayImage
 process
 test
 trainSVM
