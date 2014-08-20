@@ -27,27 +27,6 @@ private:
   // A stopgap measure to ensure proper placement of the strings into the result
   resultIndex_;
 
-  /** 
-
-ASDASD
-AD
-ASD
-AS
-DAS
-DA
-SD
-ASD
-AS
-DAS
-DAS
-D
-ASD
-AS
-D
-
-  RESPOSND TO MASA'S EMAIL **/
-
-
 public: 
   // Assigns all passes values to their respective local versions
   ParseRow(int id, int aboveId, int belowId,
@@ -64,14 +43,33 @@ public:
     resultIndex_ = resultIndex;
   }
 
-  // Methods needed: getters for each of the pixel coordinates
-  // Get IDs, get resultIndex
-
+  // Return the row's id
   int GetId() {
     return id_;
   };
 
-  ivec GetCoordinates() {
+  // Return the id of the row that this is above
+  int GetAboveId() {
+    return aboveId_;
+  }
+
+  // Return the id of the row that this is below
+  int GetBelowId() {
+    return belowId_;
+  }
+
+  // Return the index at which this row's characters should be applied
+  int GetResultIndex() {
+    return resultIndex_;
+  }
+
+  // Changes the index at which this row's characters should be applied
+  void ChangeResultIndex(int amount) {
+    resultIndex_ += amount;
+  }
+
+  // Return locations of the delimitters between the above, main, and sub-rows
+  ivec GetBoundaries() {
     return ivec({startAbove_, startMain_, endMain_, 
       endBelow_});
   };

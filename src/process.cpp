@@ -301,7 +301,8 @@ bool isInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contour
 }
 
 // Finds the row to which a particular symbol belongs
-int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int index, 
+// Tree-based algorithm
+int findRow(vector<ParseRow>& rows, vector< arma::imat >& parseInfo, int index, 
     vector< string >& result, int& rowCounter, int& totalApplied) {
 
     string temp = "";
@@ -309,17 +310,21 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
 
     for (int i = 0; i < rows.size(); i++) {
         int mainDiff = 0;
-        bool contained = isInMainRow(rows[i][4], rows[i][5], contour[2], contour[2] + contour[4], mainDiff);
-        if (contained) {
-            parseInfo[index][5] = i;
+        arma::ivec bounds = rows[i].GetBoundaries();
 
-            // Go through the characters and choose the one(s) that relate(s) to this
+        // Check if the symbol is in the main section of the current row
+        bool contained = isInMainRow(bounds[1], bounds[5], contour[2], contour[2] + contour[4], mainDiff);
+
+        if (contained) {
+            parseInfo[index][5] = i; // Record that this character is in row i
+
+            // Go through the characters and choose those which relate to this
             for (int j = 0; j < parseInfo.size(); j++) {
                 if (parseInfo[j][5] == i) {
                     int symbolIndex = static_cast<int>(parseInfo[j][0]);
                     //temp += to_string(parseInfo[j][0]);
                     temp += findSymbol(symbolIndex);
-                    parseInfo[j][5] = -1;
+                    parseInfo[j][5] = -1; // The symbol has been assigned
                 }
             }
 
@@ -331,59 +336,64 @@ int findRow(vector< arma::imat >& rows, vector< arma::imat >& parseInfo, int ind
 
             // Iterate over all other rows and see if any were above/below this
             for (int j = 0; j < rows.size(); j++) {
-                if (rows[j][1] == i) {
+                if (rows[j].GetAboveId() == i) {
 
                     for (int k = 0; k < parseInfo.size(); k++) {
-                        if (parseInfo[k][5] == rows[j][0]) {
-
-                            cout << "Rows" << endl;
-                            for (int l = 0; l < rows.size(); l++) {
-                                cout << rows[l] << endl;
-                            }
-                            cout << "End Rows" << endl;
-
-                         int symbolIndex = static_cast<int>(parseInfo[k][0]);
+                        if (parseInfo[k][5] == rows[j].GetId()) {
+                            int symbolIndex = static_cast<int>(parseInfo[k][0]);
                             //result[rows[j][7]] += "^" + to_string(parseInfo[k][0]);
-                         result[rows[j][7]] += "^" + findSymbol(symbolIndex);
-                         parseInfo[k][5] = -1;
-                         indexOfLinked = j;
-                         numberChildrenApplied++;
+                            result[ rows[j].GetResultIndex() ] += "^" + findSymbol(symbolIndex);
+                            parseInfo[k][5] = -1;
+                            indexOfLinked = j;
+                            numberChildrenApplied++;
+                        }
                     }
                 }
             }
-        }
 
-        // Now move them back   
-        for (int j = 0; j < rows.size(); j++) {
-           rows[j][7] -= numberChildrenApplied;
-        }
-        totalApplied += numberChildrenApplied;
+            // Now move them back   
+            for (int j = 0; j < rows.size(); j++) {
+                rows[j].ChangeResultIndex(-1 * numberChildrenApplied);
+            }
+            totalApplied += numberChildrenApplied;
 
-        if (indexOfLinked != -1) {
-            rows.erase(rows.begin() + indexOfLinked);
-        }
-        result.push_back(temp);
+            if (indexOfLinked != -1) {
+                rows.erase(rows.begin() + indexOfLinked);
+            }
+            result.push_back(temp);
 
-        return i;
+            return i;
+        }
     }
-}
 
 // Check if it's above
 for (int i = 0; i < rows.size(); i++) {
     int aboveDiff = 0, belowDiff = 0;
 
-    bool containedAbove = isInMainRow(rows[i][3], rows[i][4], contour[2], contour[2] + contour[4], aboveDiff);
-    bool containedBelow = isInMainRow(rows[i][5], rows[i][6], contour[2], contour[2] + contour[4], belowDiff);
+    arma::ivec bounds = rows[i].GetBoundaries();
+
+    bool containedAbove = isInMainRow(bounds[0], bounds[1], 
+        contour[2], contour[2] + contour[4], aboveDiff);
+    bool containedBelow = isInMainRow(bounds[2], bounds[3], 
+        contour[2], contour[2] + contour[4], belowDiff);
 
     if (aboveDiff < belowDiff) {
         // Add a new row with the same above limit
         // but a main row in the middle 1/3 of the previous row's 'above' zone
 
+        /**
         rows.push_back( {rowCounter, i, -1, rows[i][3], 
             (rows[i][4] - rows[i][3]) / 3, 
             2 * (rows[i][4] - rows[i][3]) / 3,
             rows[i][4], index - 1 - totalApplied
-        } );
+        } );**/
+
+        rows.push_back( ParseRow(rowCounter, i, -1, bounds[0], 
+            (bounds[1] - bounds[0]) / 3, 
+            2 * (bounds[1] - bounds[0]) / 3,
+            bounds[1], index - 1 - totalApplied
+        ) );
+
         rowCounter++;
         parseInfo[index][5] = rowCounter - 1;
 
@@ -395,7 +405,7 @@ for (int i = 0; i < rows.size(); i++) {
         // TODO: COPY CODE FROM ABOVE
         return i;
     }
-    }
+}
 }
 
 int main(int argc, char** argv) {
@@ -457,13 +467,13 @@ int main(int argc, char** argv) {
     // Rows contains values in the order
     // id, above(index), below(index), start of above, start of main, end of main,
     // end of below, result index at which to apply them
-    vector<arma::imat> rows;
-    rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows, 0} );
+    //vector<arma::imat> rows;
+    //rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows, 0} );
     int rowCounter = 1;
 
     // Vector of rows for parsing
-    vector<ParseRow> rowObjs;
-    rowObjs.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows, 0});
+    vector<ParseRow> rows;
+    rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows, 0});
 
     // The final string derived from parsing
     // Is a vector b/c this allows easy addition of exponents and subscripts
@@ -484,13 +494,13 @@ int main(int argc, char** argv) {
             // Iterate over all other rows and see if any were above/below this
                 for (int j = 0; j < rows.size(); j++) {
                     //cout << rows[j] << endl;
-                    if (rows[j][1] == i) {
+                    if (rows[j].GetAboveId() == i) {
                         //cout << "Found a row at " << j << endl;
-                        cout << "Rows: " << rows[j] << endl;
+                        //cout << "Rows: " << rows[j] << endl;
                         for (int k = 0; k < parseInfo.size(); k++) {
-                            if (parseInfo[k][5] == rows[j][0]) {
+                            if (parseInfo[k][5] == rows[j].GetId()) {
                                 cout << "Found a matching symbol at " << k << endl;
-                                cout << rows[j][1] << endl;
+                                cout << rows[j].GetAboveId() << endl;
                                 result[rowCounter - 1] += "^" + to_string(parseInfo[k][0]) + " ";
                                 parseInfo[k][5] = -1;
                                 //cout << "Temp: " << temp << endl;
