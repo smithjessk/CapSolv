@@ -8,6 +8,7 @@ evaluation/*
 site/*
 src/CMakeFiles/*
 src/cmake-modules/*
+tmp/*
 
 scratch.txt
 CMakeCache.txt

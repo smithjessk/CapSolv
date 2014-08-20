@@ -1,14 +1,26 @@
-LINUX
+#!/bin/bash
+set -e
 
-http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html
+#UNIX
 
-Packages installed (other ones probably needed): 
-libavcodec-dev, libavformat-dev, libswscale-dev, etc: all ones that are not optional
+#http://docs.opencv.org/doc/tutorials/introduction/linux_install/linux_install.html
 
-Download .zip from their website
-Unzip
-Navigate to downloads
-mkdir tmp and enter
-cmake <path of unzipped library>
-make
-sudo make install
+#Packages installed (other ones probably needed): 
+#libavcodec-dev, libavformat-dev, libswscale-dev, etc: all ones that are not optional
+
+#Download .zip from their website
+sudo wget http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.4.9/opencv-2.4.9.zip
+
+#Unzip
+unzip opencv-2.4.9.zip
+
+#mkdir tmp and enter
+mkdir tmp
+pushd tmp
+	#cmake <path of unzipped library>
+	cmake ../opencv-2.4.9
+	#make
+	make
+	#sudo make install
+	sudo make install
+popd
