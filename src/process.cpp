@@ -13,10 +13,13 @@
  *  TODO:
  *   Implement better alg. than totalApplied to place exp/sub in right spots
  *   Fully document parsing alg.
- *   Update parsing alg to use rows.h
  *   Add disambiguation for edge case where to characters start at the same spot
  *       and have the same width
  */
+
+
+// CapSolv Dependencies
+#include "parseRow.h"
 
 // Standard Dependencies
 #include <iostream>
@@ -35,9 +38,6 @@
 #include <opencv2/core/utility.hpp>
 #include <opencv2/core/cuda.hpp>
 #include <opencv2/ml/ml.hpp>
-
-// CapSolv Dependencies
-#include "parseRow.h"
 
 // Conflicts created on Mat
 using namespace cv;
@@ -113,11 +113,6 @@ arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
         cv::resize(img, img, cv::Size(32, 32));
         scalingFactor = 1;
     }
-
-    //cv::resize(img, img, cv::Size(32, 32));
-    //scalingFactor = 1;
-
-    //cv::medianBlur(img, img, 5);
 
     // Display the resized image
     if (displayImgs) {
@@ -281,22 +276,20 @@ bool compareHoriz(arma::imat a, arma::imat b) {
 // Checks if a contour is in the main row 
 bool isInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contourEnd, int& diff) {
 
-    if ( (mainRowStart > contourStart) && (mainRowEnd < contourEnd) ) { // If the contour contains the entire main row
-        return true; // Accept it
-    }
+    // If the contour contains the entire main row, it is in the main row
+    if ( (mainRowStart > contourStart) && (mainRowEnd < contourEnd) ) 
+        return true;
 
-    if (contourStart < mainRowStart) {
+
+    if (contourStart < mainRowStart) 
         diff += mainRowStart - contourStart;
-    }
-    if (contourEnd > mainRowEnd) {
+    
+    if (contourEnd > mainRowEnd) 
         diff += contourEnd - mainRowEnd;
-    }
 
-    //cout << "Diff: " << diff << endl;
-
-    if (diff > 0.4 * (contourEnd - contourStart)) {
+    if (diff > 0.4 * (contourEnd - contourStart))
         return false;
-    }
+
     return true;
 }
 
@@ -341,8 +334,8 @@ int findRow(vector<ParseRow>& rows, vector< arma::imat >& parseInfo, int index,
                     for (int k = 0; k < parseInfo.size(); k++) {
                         if (parseInfo[k][5] == rows[j].GetId()) {
                             int symbolIndex = static_cast<int>(parseInfo[k][0]);
-                            //result[rows[j][7]] += "^" + to_string(parseInfo[k][0]);
                             result[ rows[j].GetResultIndex() ] += "^" + findSymbol(symbolIndex);
+
                             parseInfo[k][5] = -1;
                             indexOfLinked = j;
                             numberChildrenApplied++;
@@ -380,13 +373,6 @@ for (int i = 0; i < rows.size(); i++) {
     if (aboveDiff < belowDiff) {
         // Add a new row with the same above limit
         // but a main row in the middle 1/3 of the previous row's 'above' zone
-
-        /**
-        rows.push_back( {rowCounter, i, -1, rows[i][3], 
-            (rows[i][4] - rows[i][3]) / 3, 
-            2 * (rows[i][4] - rows[i][3]) / 3,
-            rows[i][4], index - 1 - totalApplied
-        } );**/
 
         rows.push_back( ParseRow(rowCounter, i, -1, bounds[0], 
             (bounds[1] - bounds[0]) / 3, 
@@ -432,11 +418,9 @@ int main(int argc, char** argv) {
     // Only done to simplify the creation of the inputMat for the SVM
     float contourArray[contours.size()][64];
 
-    for (int i = 0; i < contours.size(); i++) {
-        for (int j = 0; j < 64; j++) {
+    for (int i = 0; i < contours.size(); i++)
+        for (int j = 0; j < 64; j++)
             contourArray[i][j] = contours[i][j];
-        }
-    }
 
     // Create the cv::Mats for the SVM
     cv::Mat inputMat(contours.size(), 64, CV_32FC1, contourArray);
@@ -445,35 +429,23 @@ int main(int argc, char** argv) {
     // Predict using SVM
     outputMat = predict(inputMat, outputMat);
 
-    for (int i = 0; i < contours.size(); i++) {
+    for (int i = 0; i < contours.size(); i++) 
         parseInfo[i][0] = outputMat.at<float>(i, 0);
-        //cout << parseInfo[i] << endl;
-    }
 
     // Sort horizontally from left to right
-    sort(parseInfo.begin(), parseInfo.end(), compareHoriz);
-
-    // Print result
-    /*
-    for (int i = 0; i < parseInfo.size(); i++) {
-        cout << parseInfo[i] << endl;
-    } */   
+    sort(parseInfo.begin(), parseInfo.end(), compareHoriz); 
 
     // Compute the middle 1/3 of the image
     // Used later in parsing to determine what is an exponent, etc.
     int mainRowStart = threshImage.rows / 3;
     int mainRowEnd = 2 * threshImage.rows / 3;
 
-    // Rows contains values in the order
-    // id, above(index), below(index), start of above, start of main, end of main,
-    // end of below, result index at which to apply them
-    //vector<arma::imat> rows;
-    //rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows, 0} );
-    int rowCounter = 1;
-
     // Vector of rows for parsing
     vector<ParseRow> rows;
     rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, threshImage.rows, 0});
+
+    // Number of rows that have been created; Used to place strings in result
+    int rowCounter = 1;
 
     // The final string derived from parsing
     // Is a vector b/c this allows easy addition of exponents and subscripts
@@ -495,15 +467,12 @@ int main(int argc, char** argv) {
                 for (int j = 0; j < rows.size(); j++) {
                     //cout << rows[j] << endl;
                     if (rows[j].GetAboveId() == i) {
-                        //cout << "Found a row at " << j << endl;
-                        //cout << "Rows: " << rows[j] << endl;
                         for (int k = 0; k < parseInfo.size(); k++) {
                             if (parseInfo[k][5] == rows[j].GetId()) {
                                 cout << "Found a matching symbol at " << k << endl;
                                 cout << rows[j].GetAboveId() << endl;
                                 result[rowCounter - 1] += "^" + to_string(parseInfo[k][0]) + " ";
                                 parseInfo[k][5] = -1;
-                                //cout << "Temp: " << temp << endl;
                             }
                         }
 
@@ -512,6 +481,7 @@ int main(int argc, char** argv) {
             }
         }
 
+    // Print the result
     for (int i = 0; i < result.size(); i++) {
         cout << result[i] << " ";
     }
