@@ -1,4 +1,17 @@
 /**
+ * An object representing a row in the parsing algorithm
+ *
+ * Rows correspond to different height levels in an expression. For instance, in
+ * $ 1^2 + 3^4 $, the  1, +, and 3 would ideally be the in the same height level
+ * and also in the same row. 
+ * However, the exponents, while in the same height level, would be in two
+ * different rows. This is because they apply to two different symbols in the
+ * "main row." In the above example, the + would be in the main row and thus
+ * would cause the row for the ^2 to be applied and then deleted.
+ * A similar process applies for subscripts.
+ * 
+ * Used by process.cpp
+ *
  * @author Jess Smith <smith.jessk@gmail.com>
  * @copyright 2014 Jess Smith
  * @license MIT
@@ -22,7 +35,6 @@ private:
   // Vertical pixel addresses of the appropriate beginnings or endings of various
   // rows. These are used to determine if a symbol is an exponent, subscript, etc
   startAbove_, startMain_, endMain_, endBelow_,
-
 
   // A stopgap measure to ensure proper placement of the strings into the result
   resultIndex_;
