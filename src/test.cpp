@@ -1,12 +1,21 @@
+
+// CapSolv Dependencies
+#include "contours.h"
+
+// Standard Dependencies
 #include <iostream>
 #include <stdio.h>
+
+// Armadillo
+#include <armadillo>
+
+// OpenCV Dependencies
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/ml/ml.hpp>
-#include <armadillo>
-#include "contours.h"
 
+// Conflicts created on Mat
 using namespace cv;
 using namespace arma;
 using namespace std;
