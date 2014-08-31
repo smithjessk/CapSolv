@@ -10,6 +10,9 @@ src/CMakeFiles/*
 src/cmake-modules/*
 tmp/*
 
+armadillo-4.400.1/*
+opencv-2.4.9/*
+
 scratch.txt
 CMakeCache.txt
 Makefile
