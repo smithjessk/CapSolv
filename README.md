@@ -26,4 +26,4 @@ To run the classification pipeline on an image, navigate to /src/ and run:
 
 ## Contact
 
-For any questions or comments, feel free to email <smith.jessk@gmail.com> or <jonathanmclaus@gmail.com>.
+For any questions or comments, feel free to email <smith.jessk@gmail.com>, <jonathanmclaus@gmail.com>, <david_liu@brown.edu>, or <tyvanroy@gmail.com>. 
