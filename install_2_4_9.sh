@@ -1,3 +1,9 @@
+# Install OpenCV 2.4.9 for Ubuntu
+# Derived from https://github.com/jayrambhia/Install-OpenCV/blob/master/Ubuntu/2.4/opencv2_4_8.sh
+
+# @author Jess Smith <smith.jessk@gmail.com>
+# @license MIT
+
 arch=$(uname -m)
 if [ "$arch" == "i686" -o "$arch" == "i386" -o "$arch" == "i486" -o "$arch" == "i586" ]; then
 flag=1
