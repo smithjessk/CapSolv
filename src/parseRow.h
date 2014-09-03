@@ -81,8 +81,9 @@ public:
   }
 
   // Return locations of the delimitters between the above, main, and sub-rows
-  ivec GetBoundaries() {
+  arma::ivec GetBoundaries() {
     return ivec({startAbove_, startMain_, endMain_, 
       endBelow_});
   };
+
 };
