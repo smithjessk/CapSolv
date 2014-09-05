@@ -1,3 +1,6 @@
+// Trains the SVM
+// Usage: ./trainSVM <<directory of training images>> <<list of enums to train on>>
+
 // Standard Imports
 #include <iostream>
 #include <stdio.h>
@@ -18,9 +21,8 @@ using namespace arma;
 using namespace std;
 
 // Applies a threshold that accounts for various intensities
-cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
+cv::Mat PreProcess(cv::Mat img, bool displayImgs = false) {
     // Initialization
-    cout << "Applying preprocessing" << endl;
     cv::Mat mean;
     cv::Mat stddev;
 
@@ -40,7 +42,6 @@ cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
         waitKey(0);
     }
 
-    cout << endl;
     return img;
 }
 
@@ -70,7 +71,7 @@ arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
         cv::resize(img, img, cv::Size(32, 32));
         scalingFactor = 1;
     }
-    
+
     //cv::resize(img, img, cv::Size(32, 32));
     //scalingFactor = 1;
 
@@ -141,9 +142,8 @@ arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
 }
 
 // Finds the contours in the thresholded image
-vector< arma::umat > analyzeContours(cv::Mat img, vector< arma::imat >& parseInfo, 
+vector< arma::umat > AnalyzeContours(cv::Mat img, vector< arma::imat >& parseInfo, 
     bool displayImgs = false) {
-    cout << "Analyzing contours" << endl;
     // Initialization
 
     float imgArea = img.rows * img.cols;
@@ -215,18 +215,50 @@ int main(int argc, char** argv ) {
 
     for (int i = 2; i < argc; i++) {
         string num = argv[i];
-        cv::Mat image = cv::imread(directory + "master" + num + ".jpg", 0);
+        cv::Mat image = cv::imread(directory + num + ".jpg", 0);
         float number = stof(num);
 
         vector< arma::imat > parseInfo;
 
-        cv::Mat threshImage = preProcess(image, false);
-        vector< arma::umat > tempContours = analyzeContours(threshImage, parseInfo, false);
+        cv::Mat threshImage = PreProcess(image, false);
+        vector< arma::umat > tempContours = AnalyzeContours(threshImage, parseInfo, false);
 
         contours.push_back(tempContours);
         responses.push_back(number);
         arraySize += tempContours.size();
     }
+
+    /**
+
+    // To deal with alternate versions of the letter x
+    for (int i = 0; i < 100; i++) {
+        cv::Mat image = cv::imread("../evaluation/digit_training/diff_x.jpg", 0);
+
+        vector< arma::imat > parseInfo;
+
+        cv::Mat threshImage = PreProcess(image, false);
+        vector< arma::umat > tempContours = AnalyzeContours(threshImage, parseInfo, false);
+
+        contours.push_back(tempContours);
+        responses.push_back(20);
+        arraySize += tempContours.size();
+    }
+
+    // To deal with alternate minus signs
+    for (int i = 0; i < 100; i++) {
+        cv::Mat image = cv::imread("../evaluation/digit_training/diff_-.jpg", 0);
+
+        vector< arma::imat > parseInfo;
+
+        cv::Mat threshImage = PreProcess(image, false);
+        vector< arma::umat > tempContours = AnalyzeContours(threshImage, parseInfo, false);
+
+        contours.push_back(tempContours);
+        responses.push_back(11);
+        arraySize += tempContours.size();
+    }
+
+    **/
 
     float trainData[arraySize][64], responseData[arraySize][1];
     int numAdded = 0;
@@ -240,11 +272,6 @@ int main(int argc, char** argv ) {
             numAdded++; 
         }
     }
-    cout << "Response Data: ";
-    for (int i = 0; i < arraySize; i++) {
-        cout << responseData[i][0] << " ";
-    }
-    cout << endl;
 
     cv::Mat trainMat(arraySize, 64, CV_32FC1, trainData);
     cv::Mat responseMat(arraySize, 1, CV_32FC1, responseData);
@@ -261,9 +288,9 @@ int main(int argc, char** argv ) {
     cout << "Testing SVM" << endl;
     cv::Mat testImage = cv::imread(
         "../../evaluation/examples/appropo.jpg", 0);
-    cv::Mat threshTest = preProcess(testImage, true);
+    cv::Mat threshTest = PreProcess(testImage, true);
 
-    vector< arma::umat > testContours = analyzeContours(threshTest, testImage, true);
+    vector< arma::umat > testContours = AnalyzeContours(threshTest, testImage, true);
 
     float testArray[testContours.size()][64];
     for (int i = 0; i < testContours.size(); i++) {
