@@ -10,7 +10,7 @@
  * would cause the row for the ^2 to be applied and then deleted.
  * A similar process applies for subscripts.
  * 
- * Used by process.cpp
+ * Used by ./process.cpp
  *
  * @author Jess Smith <smith.jessk@gmail.com>
  * @copyright 2014 Jess Smith
@@ -55,6 +55,8 @@ public:
     resultIndex_ = resultIndex;
   }
 
+  /** GETTER METHODS **/
+
   // Return the row's id
   int GetId() {
     return id_;
@@ -75,15 +77,17 @@ public:
     return resultIndex_;
   }
 
-  // Changes the index at which this row's characters should be applied
-  void ChangeResultIndex(int amount) {
-    resultIndex_ += amount;
-  }
-
   // Return locations of the delimitters between the above, main, and sub-rows
   arma::ivec GetBoundaries() {
     return ivec({startAbove_, startMain_, endMain_, 
       endBelow_});
   };
+
+  /** SETTER METHODS **/
+
+  // Changes the index at which this row's characters should be applied
+  void ChangeResultIndex(int amount) {
+    resultIndex_ += amount;
+  }
 
 };

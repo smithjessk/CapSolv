@@ -20,6 +20,7 @@
 
 // CapSolv Dependencies
 #include "parseRow.h"
+#include "parseSymbol.h"
 
 // Standard Dependencies
 #include <iostream>
@@ -170,7 +171,7 @@ arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
 }
 
 // Finds the contours in the thresholded image
-vector< arma::umat > AnalyzeContours(cv::Mat img, vector< arma::imat >& parseInfo, 
+vector< arma::umat > AnalyzeContours(cv::Mat img, vector<ParseSymbol>& symbols,
     bool displayImgs = false) {
     //cout << "Analyzing contours" << endl;
     // Initialization
@@ -194,11 +195,11 @@ vector< arma::umat > AnalyzeContours(cv::Mat img, vector< arma::imat >& parseInf
     vector<Rect> validRectangles(contours.size());
 
     // Initialize variables to be used later
-    cv::Rect temp;
     float currArea;
     float ratio;
     int counter = 0;
     cv::Mat mask;
+    cv::Rect temp;
     Scalar contourMean;
 
     // Iterate over contours
@@ -219,8 +220,9 @@ vector< arma::umat > AnalyzeContours(cv::Mat img, vector< arma::imat >& parseInf
             float intensityRatio = contourMean[0] / imgMean.at<double>(0);
             if (intensityRatio < 0.95 && (intensityRatio / currArea < 0.0003) ) {
                 validContours.push_back(ComputeHOG(mask, displayImgs));
-                //arma::imat tempArr = {-1, temp.x, temp.y, temp.width, temp.height};
-                parseInfo.push_back({-1, temp.x, temp.y, temp.width, temp.height, -1});
+
+                symbols.push_back( 
+                    {-1, temp.x, temp.y, temp.width, temp.height, -1});
                 counter++;
             } 
         }
@@ -231,7 +233,19 @@ vector< arma::umat > AnalyzeContours(cv::Mat img, vector< arma::imat >& parseInf
 
 // Loads and evaluates the SVM on inputMat
 // Predictions are returned in outputMat
-cv::Mat Predict(cv::Mat inputMat, cv::Mat outputMat) {
+cv::Mat Predict(vector< arma::umat > contours) {
+    // Pass the contours into an array of floats
+    // Only done to simplify the creation of the inputMat for the SVM
+    float contourArray[contours.size()][64];
+
+    for (int i = 0; i < contours.size(); i++)
+        for (int j = 0; j < 64; j++)
+            contourArray[i][j] = contours[i][j];
+
+    // Create the cv::Mats for the SVM
+    cv::Mat inputMat(contours.size(), 64, CV_32FC1, contourArray);
+    cv::Mat outputMat(contours.size(), 1, CV_32FC1, 0);
+
     // Setting up SVM
     CvSVMParams params;
     params.svm_type = CvSVM::C_SVC;
@@ -250,16 +264,19 @@ cv::Mat Predict(cv::Mat inputMat, cv::Mat outputMat) {
 
 // Compares the x values of the contours' top-left corners
 // If those are equal, determine which one ends first and put that first
-// Note that both imats should be elements of parseInfo
-bool CompareHorizontally(arma::imat a, arma::imat b) {
-    if (a[1] == b[1]) {
-        return (a[1] + a[3]) < (b[1] + b[3]);
+// Note that both imats should be elements of symbols
+bool CompareHorizontally(ParseSymbol a, ParseSymbol b) {
+    arma::ivec dimA = a.GetDimensions();
+    arma::ivec dimB = b.GetDimensions();
+
+    if (dimA[0] == dimB[0]) {
+        return (dimA[0] + dimA[2]) < (dimB[0] + dimB[3]);
     }
-    return a[1] < b[1];
+    return dimA[0] < dimB[0];
 }
 
 // Checks if a contour is in the main row 
-bool IsInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contourEnd, int& diff) {
+bool IsInRow(int mainRowStart, int mainRowEnd, int contourStart, int contourEnd, int& diff) {
 
     // If the contour contains the entire main row, it is in the main row
     if ( (mainRowStart > contourStart) && (mainRowEnd < contourEnd) ) 
@@ -280,29 +297,30 @@ bool IsInMainRow(int mainRowStart, int mainRowEnd, int contourStart, int contour
 
 // Finds the row to which a particular symbol belongs
 // Tree-based algorithm
-int FindRow(vector<ParseRow>& rows, vector<arma::imat>& parseInfo, int index, 
-    vector<string>& result, int& rowCounter, int& totalApplied) {
+int FindRow(vector<ParseRow>& rows, vector<ParseSymbol>& symbols,
+    int index, vector<string>& result, int& rowCounter, int& totalApplied) {
 
     string temp = "";
-    arma::imat contour = parseInfo[index];
+    ParseSymbol contourTemp = symbols[index];
 
     for (int i = 0; i < rows.size(); i++) {
         int mainDiff = 0;
         arma::ivec bounds = rows[i].GetBoundaries();
+        arma::ivec dimensions = contourTemp.GetDimensions();
 
         // Check if the symbol is in the main section of the current row
-        bool contained = IsInMainRow(bounds[1], bounds[5], contour[2], contour[2] + contour[4], mainDiff);
+        bool contained = IsInRow(bounds[1], bounds[2], dimensions[1], 
+            dimensions[1] + dimensions[3], mainDiff);
 
         if (contained) {
-            parseInfo[index][5] = i; // Record that this character is in row i
-            //cout << parseInfo[index][0] << endl;
+            // Record that this character is in row i
+            symbols[index].SetRow(i);
+
             // Go through the characters and choose those which relate to this
-            for (int j = 0; j < parseInfo.size(); j++) {
-                if (parseInfo[j][5] == i) {
-                    int symbolIndex = static_cast<int>(parseInfo[j][0]);
-                    //temp += to_string(parseInfo[j][0]);
-                    temp += FindSymbol(symbolIndex);
-                    parseInfo[j][5] = -1; // The symbol has been assigned
+            for (int j = 0; j < symbols.size(); j++) {
+                if (symbols[j].GetRow() == i) {
+                    temp += FindSymbol(symbols[j].GetEnumId());
+                    symbols[j].SetRow(-1); // The symbol has been assigned
                 }
             }
 
@@ -316,12 +334,12 @@ int FindRow(vector<ParseRow>& rows, vector<arma::imat>& parseInfo, int index,
             for (int j = 0; j < rows.size(); j++) {
                 if (rows[j].GetAboveId() == i) {
 
-                    for (int k = 0; k < parseInfo.size(); k++) {
-                        if (parseInfo[k][5] == rows[j].GetId()) {
-                            int symbolIndex = static_cast<int>(parseInfo[k][0]);
-                            result[ rows[j].GetResultIndex() ] += "^" + FindSymbol(symbolIndex);
+                    for (int k = 0; k < symbols.size(); k++) {
+                        if (symbols[k].GetRow() == rows[j].GetId()) {
+                            result[ rows[j].GetResultIndex() ] += "^" + 
+                                FindSymbol(symbols[k].GetEnumId());
 
-                            parseInfo[k][5] = -1;
+                            symbols[k].SetRow(-1);
                             indexOfLinked = j;
                             numberChildrenApplied++;
                         }
@@ -349,11 +367,13 @@ int FindRow(vector<ParseRow>& rows, vector<arma::imat>& parseInfo, int index,
         int aboveDiff = 0, belowDiff = 0;
 
         arma::ivec bounds = rows[i].GetBoundaries();
+        arma::ivec dimensions = contourTemp.GetDimensions();
 
-        bool containedAbove = IsInMainRow(bounds[0], bounds[1], 
-            contour[2], contour[2] + contour[4], aboveDiff);
-        bool containedBelow = IsInMainRow(bounds[2], bounds[3], 
-            contour[2], contour[2] + contour[4], belowDiff);
+        bool containedAbove = IsInRow(bounds[0], bounds[1], 
+            dimensions[1], dimensions[1] + dimensions[3], aboveDiff);
+        bool containedBelow = IsInRow(bounds[2], bounds[3], 
+            dimensions[1], dimensions[1] + dimensions[3], belowDiff);
+
 
         if (aboveDiff < belowDiff) {
         // Add a new row with the same above limit
@@ -366,25 +386,26 @@ int FindRow(vector<ParseRow>& rows, vector<arma::imat>& parseInfo, int index,
                 ) );
 
             rowCounter++;
-            parseInfo[index][5] = rowCounter - 1;
+            symbols[index].SetRow(rowCounter - 1);
 
             return rowCounter - 1;
         }
         if (belowDiff < aboveDiff) {
-            parseInfo[index][5] = i;
+            symbols[index].SetRow(i);
 
-        // TODO: COPY CODE FROM ABOVE
+            // TODO: COPY CODE FROM ABOVE
             return i;
         }
     }
 }
 
 // Runs the parsing algorithm 
-vector<string> Parse(vector<arma::imat>& parseInfo, int numRows) {
+vector<string> Parse(vector<ParseSymbol>& symbols, 
+    int numRows) {
     vector<string> result;
 
     // Sort horizontally from left to right
-    sort(parseInfo.begin(), parseInfo.end(), CompareHorizontally); 
+    sort(symbols.begin(), symbols.end(), CompareHorizontally); 
 
     // Compute the middle 1/3 of the image
     // Used later in parsing to determine what is an exponent, etc.
@@ -393,7 +414,7 @@ vector<string> Parse(vector<arma::imat>& parseInfo, int numRows) {
 
     // Vector of rows for parsing
     vector<ParseRow> rows;
-    rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, numRows, 0});
+    rows.push_back( {0, -1, -1, 0, mainRowStart, mainRowEnd, numRows, 0} );
 
     // Number of rows that have been created; Used to place strings in result
     int rowCounter = 1;
@@ -403,24 +424,23 @@ vector<string> Parse(vector<arma::imat>& parseInfo, int numRows) {
     int totalApplied = 0; 
 
         // Iterate over things and check if they're in the main row
-    for (int i = 0; i < parseInfo.size(); i++) 
-        int index = FindRow(rows, parseInfo, i, result, rowCounter, totalApplied);
+    for (int i = 0; i < symbols.size(); i++) 
+        int index = FindRow(rows, symbols, i, result, rowCounter, totalApplied);
 
     // Need to apply checks to the final element
-    if (result.size() != parseInfo.size()) {
+    if (result.size() != symbols.size()) {
         for (int i = 0; i < rows.size(); i++) {
             // Iterate over all other rows and see if any were above/below this
             for (int j = 0; j < rows.size(); j++) {
-
                 if (rows[j].GetAboveId() == i) {
-                    for (int k = 0; k < parseInfo.size(); k++) {
-                        if (parseInfo[k][5] == rows[j].GetId()) {
-                            result[rowCounter - 1] += "^" + to_string(parseInfo[k][0]) + " ";
-                            parseInfo[k][5] = -1;
+                    for (int k = 0; k < symbols.size(); k++) {
+                        if (symbols[k].GetRow() == rows[j].GetId()) {
+                            result[rowCounter - 1] += "^" + 
+                                FindSymbol(symbols[k].GetEnumId()) + " ";
+                            symbols[k].SetRow(-1);
                         }
                     }
                 }
-
             } 
         }
     }
@@ -443,33 +463,22 @@ int main(int argc, char** argv) {
     // Each element contains these values (in this order): 
     // id, x, y, width, height, row
     // Note that x, y are for the top left corner of the image
-    vector< arma::imat > parseInfo;
+    vector<ParseSymbol> symbols;
 
     // Compute and describe contours
-    vector< arma::umat > contours = AnalyzeContours(threshImage, parseInfo, false);
-
-    // Pass the contours into an array of floats
-    // Only done to simplify the creation of the inputMat for the SVM
-    float contourArray[contours.size()][64];
-
-    for (int i = 0; i < contours.size(); i++)
-        for (int j = 0; j < 64; j++)
-            contourArray[i][j] = contours[i][j];
-
-    // Create the cv::Mats for the SVM
-    cv::Mat inputMat(contours.size(), 64, CV_32FC1, contourArray);
-    cv::Mat outputMat(contours.size(), 1, CV_32FC1, 0);
+    vector< arma::umat > contours = AnalyzeContours(threshImage, symbols, false);
 
     // Predict using SVM
-    outputMat = Predict(inputMat, outputMat);
+    cv::Mat outputMat = Predict(contours);
 
-    // Assign the predictions to their places in the parseInfo vector
-    for (int i = 0; i < contours.size(); i++) 
-        parseInfo[i][0] = outputMat.at<float>(i, 0);
+    // Assign the predictions to their places in the symbols vector
+    for (int i = 0; i < contours.size(); i++) {
+        symbols[i].SetId(outputMat.at<float>(i, 0));
+    }
 
     // The final string derived from parsing
     // Is a vector b/c this allows easy addition of exponents and subscripts
-    vector<string> result = Parse(parseInfo, threshImage.rows);
+    vector<string> result = Parse(symbols, threshImage.rows);
 
     // Print the result
     for (int i = 0; i < result.size(); i++) 
