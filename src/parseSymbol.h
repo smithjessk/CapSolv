@@ -1,4 +1,9 @@
 /**
+ * An object representin a symbol in the parsing algorithm
+ *
+ * 
+ * Used by ./process.cpp
+ *
  * @author Jess Smith <smith.jessk@gmail.com>
  * @copyright 2014 Jess Smith
  * @license MIT
@@ -19,6 +24,7 @@ private:
 	x_, y_, width_, height_,
 
 	// The id_ of the row that this symbol was found in
+	// For clarification, see ./parseRow.h
 	row_;
 
 public:
@@ -34,13 +40,34 @@ public:
 		row_ = row;
 	};
 
-	void SetRow(int row) {
-		row_ = row;
+	/** GETTER METHODS **/
+
+	// Returns the row in which this symbol is found
+	int GetRow() {
+		return row_;
+	}
+
+	// Returns the id that this symbol has been predicted as 
+	int GetEnumId() {
+		return id_;
 	}
 
 	// Returns a vector containing the coordinates of the top-left point of the
 	// symbol, its width, and its height
 	arma::ivec GetDimensions() {
 		return ivec({x_, y_, width_, height_});
+	}
+
+	/** SETTER METHODS **/
+
+	// Sets the id that this symbol has been predicted as
+	// For details, see ../enum.tsv
+	void SetId(int id) {
+		id_ = id;
+	}
+
+	// Sets the row in which this symbol is found
+	void SetRow(int row) {
+		row_ = row;
 	}
 };
