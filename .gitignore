@@ -21,3 +21,4 @@ DisplayImage
 process
 test
 trainSVM
+cmake_install.cmake

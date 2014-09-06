@@ -47,8 +47,10 @@ class Contours {
     //   cout << "No black pixels." << endl;
     //   throw 1;
     // }
-    cout << "# filled rows: " << rows.n_elem << " first: " << rows(0) << " last: " << rows(rows.n_elem - 1) << endl;
-    cout << "# filled cols: " << cols.n_elem << " first: " << cols(0) << " last: " << cols(cols.n_elem - 1) << endl;
+    cout << "# filled rows: " << rows.n_elem << " first: " << rows(0)
+         << " last: " << rows(rows.n_elem - 1) << endl;
+    cout << "# filled cols: " << cols.n_elem << " first: " << cols(0)
+         << " last: " << cols(cols.n_elem - 1) << endl;
     image_ = arma.submat(rows(0), cols(0),
                          rows(rows.n_elem - 1), cols(cols.n_elem - 1));
     cout << "Image cropped" << endl;
@@ -84,13 +86,28 @@ class Contours {
     // Finding contours everywhere else
     for (int c = 1; c < image_.n_cols; c++) {
       for (int r = 1; r < image_.n_rows; r++) {
+        if (r == 8 && c == 14) {
+          cout << "Here2.5 "
+               << (int) image_(r, c) << " " << (int) contour_counter << endl;
+        }
         if (image_(r, c) != 255) {
+if (r == 8 && c == 14)
+cout << "here8" << endl;
           if (image_(r - 1, c) != 255 && image_(r, c - 1) != 255) {
+if (r == 8 && c == 14)
+cout << "here9" << endl;
             // Meeting of contours.
             if (image_(r - 1, c) == image_(r, c - 1)) {
+if (r == 8 && c == 14)
+cout << "here10 " << (int) image_(r - 1, c) << endl;
               image_(r, c) == image_(r - 1, c);
+if (r == 8 && c == 14)
+cout << (int) image_(r, c) << endl;
+
             } else {
               // Merging of contours.
+if (r == 8 && c == 14)
+cout << "here11 " << (int) image_(8, 14) << " " << (int) image_(8, 13) << endl;
               image_(r, c) = image_(r - 1, c);
               image_(span(0, r - 1), c).transform([&](unsigned char val) {
                 return (val == image_(r, c - 1)) ? image_(r - 1, c) : val;
@@ -99,6 +116,8 @@ class Contours {
                 return (val == image_(r, c - 1)) ? image_(r - 1, c) : val;
               });
               missing.insert_rows(missing.n_elem, image_(r, c-1));
+if (r == 8 && c == 14)
+cout << "here11 " << (int) image_(80, 14) << " " << (int) image_(8, 13) << endl;
             }
           } else if (image_(r - 1, c) != 255) {
             image_(r, c) = image_(r - 1, c);
@@ -110,15 +129,22 @@ class Contours {
         }
       }
     }
+cout << "here11 " << (int) image_(8, 14) << " " << (int) image_(8, 13) << endl;
 
     cout << "Here3" << endl;
 
     num_contours_ = contour_counter - missing.n_elem;
     for (int i = 0; i < image_.n_rows; i++) {
       for (int j = 0; j < image_.n_cols; j++) {
-        cout << 255 - (int) image_(i, j) << " ";
+if (i == 8 && j == 14)
+cout << "A";
+        if (image_(i, j) != 255)
+          cout << (int) image_(i, j);
+        else
+          cout << " ";
+        cout << " ";
       }
-      cout << endl;
+      cout << endl << endl;
     }
     cout << "contour_counter: " << (int) contour_counter << endl;
     cout << "missing.n_elem: " << missing.n_elem << endl;
