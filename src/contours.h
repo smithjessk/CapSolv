@@ -138,13 +138,15 @@ class Contours {
       corners_(2, counter) = min(adj_indices);
       corners_(3, counter) = max(adj_indices);
     }
+
+    cout << corners_ << endl;
   }
 
 
   cmat GetContour(int counter) const {
     int index = map_(counter);
-    cmat contour =  image_.submat(corners_(0, index), corners_(1, index),
-				  corners_(2, index), corners_(3, index));
+    cmat contour =  image_.submat(corners_(0, counter), corners_(2, counter),
+				  corners_(1, counter), corners_(3, counter));
     return contour.transform([&](unsigned char val) {
       return (val == index) ? 0 : 255;
     });
