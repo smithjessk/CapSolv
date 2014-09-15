@@ -41,7 +41,7 @@ class Contours {
     uvec rows = find(sum(255 - arma, 1) != 0);
     uvec cols = find(sum(255 - arma, 0) != 0);
     crow sums = sum(255 - arma, 0);
-        // cout << rows.t() << endl;
+    // cout << rows.t() << endl;
     // cout << cols.t() << endl;
     // if (rows.n_elem == 0 || cols.n_elem == 0) {
     //   cout << "No black pixels." << endl;
@@ -61,7 +61,7 @@ class Contours {
     unsigned char contour_counter = (image_(0, 0) == 0) ? 1 : 0;
 
     // List contours that were merged into another.
-    cvec missing(256);
+    cvec missing((uword) 0);
 
     // Finding contours in the first column.
     for (int r = 1; r < image_.n_rows; r++)
@@ -71,8 +71,6 @@ class Contours {
         else
           image_(r, 0) = contour_counter++;
 
-    cout << "Here1" << endl;
-
     // Finding contours in the first row.
     for (int c = 1; c < image_.n_cols; c++)
       if (image_(0, c) != 255)
@@ -81,43 +79,25 @@ class Contours {
         else
           image_(0, c) = contour_counter++;
 
-    cout << "Here2" << endl;
-
     // Finding contours everywhere else
     for (int c = 1; c < image_.n_cols; c++) {
       for (int r = 1; r < image_.n_rows; r++) {
-        if (r == 8 && c == 14) {
-          cout << "Here2.5 "
-               << (int) image_(r, c) << " " << (int) contour_counter << endl;
-        }
         if (image_(r, c) != 255) {
-if (r == 8 && c == 14)
-cout << "here8" << endl;
           if (image_(r - 1, c) != 255 && image_(r, c - 1) != 255) {
-if (r == 8 && c == 14)
-cout << "here9" << endl;
             // Meeting of contours.
             if (image_(r - 1, c) == image_(r, c - 1)) {
-if (r == 8 && c == 14)
-cout << "here10 " << (int) image_(r - 1, c) << endl;
-              image_(r, c) == image_(r - 1, c);
-if (r == 8 && c == 14)
-cout << (int) image_(r, c) << endl;
-
-            } else {
-              // Merging of contours.
-if (r == 8 && c == 14)
-cout << "here11 " << (int) image_(8, 14) << " " << (int) image_(8, 13) << endl;
               image_(r, c) = image_(r - 1, c);
+            } else {
+              // Merging of contours. Overwrites the contour seen to the left.
+              image_(r, c) = image_(r - 1, c);
+	      unsigned char overwritten = image_(r, c - 1);
               image_(span(0, r - 1), c).transform([&](unsigned char val) {
-                return (val == image_(r, c - 1)) ? image_(r - 1, c) : val;
+                return (val == overwritten) ? image_(r - 1, c) : val;
               });
               image_.cols(0, c - 1).transform([&](unsigned char val) {
-                return (val == image_(r, c - 1)) ? image_(r - 1, c) : val;
+                return (val == overwritten) ? image_(r - 1, c) : val;
               });
-              missing.insert_rows(missing.n_elem, image_(r, c-1));
-if (r == 8 && c == 14)
-cout << "here11 " << (int) image_(80, 14) << " " << (int) image_(8, 13) << endl;
+              missing.insert_rows(missing.n_elem, cvec({overwritten}));
             }
           } else if (image_(r - 1, c) != 255) {
             image_(r, c) = image_(r - 1, c);
@@ -129,31 +109,13 @@ cout << "here11 " << (int) image_(80, 14) << " " << (int) image_(8, 13) << endl;
         }
       }
     }
-cout << "here11 " << (int) image_(8, 14) << " " << (int) image_(8, 13) << endl;
-
-    cout << "Here3" << endl;
 
     num_contours_ = contour_counter - missing.n_elem;
-    for (int i = 0; i < image_.n_rows; i++) {
-      for (int j = 0; j < image_.n_cols; j++) {
-if (i == 8 && j == 14)
-cout << "A";
-        if (image_(i, j) != 255)
-          cout << (int) image_(i, j);
-        else
-          cout << " ";
-        cout << " ";
-      }
-      cout << endl << endl;
-    }
-    cout << "contour_counter: " << (int) contour_counter << endl;
-    cout << "missing.n_elem: " << missing.n_elem << endl;
+
     cout << "Number contours: " << num_contours_ << endl;
 
     // Creating the map.
     map_ = uvec(num_contours_);
-
-    cout << "Here3.5" << endl;
 
     // Index of missing currently being considered.
     int map_index, missing_index;
@@ -165,31 +127,40 @@ cout << "A";
         map_(map_index++) = counter;
     }
 
-    cout << "Here4" << endl;
-
     // Finding the corners of the bounding box for each contour.
     corners_ = umat(4, num_contours_);
 
     for (int counter = 0; counter < num_contours_; counter++) {
-      int index = map_(counter);
-      rows = find(sum(abs(image_ - index), 0) == 0);
-      cols = find(sum(abs(image_ - index), 1) == 0);
-      corners_(0, counter) = rows(0);
-      corners_(1, counter) = rows(rows.n_elem);
-      corners_(2, counter) = cols(0);
-      corners_(3, counter) = cols(cols.n_elem);
+      uvec indices = find(image_ == map_(counter));
+      uvec adj_indices = indices / image_.n_rows;
+      corners_(0, counter) = min(indices - adj_indices * image_.n_rows);
+      corners_(1, counter) = max(indices - adj_indices * image_.n_rows);
+      corners_(2, counter) = min(adj_indices);
+      corners_(3, counter) = max(adj_indices);
     }
-
-    cout << "Here5" << endl;
   }
 
 
   cmat GetContour(int counter) const {
     int index = map_(counter);
     cmat contour =  image_.submat(corners_(0, index), corners_(1, index),
-          corners_(2, index), corners_(3, index));
+				  corners_(2, index), corners_(3, index));
     return contour.transform([&](unsigned char val) {
       return (val == index) ? 0 : 255;
     });
+  }
+
+  void PrintImage() {
+    for (int i = 0; i < image_.n_rows; i++) {
+      for (int j = 0; j < image_.n_cols; j++) {
+        if (image_(i, j) != 255)
+          cout << (int) image_(i, j);
+        else
+          cout << " ";
+        cout << " ";
+      }
+      cout << endl << endl;
+    }
+    cout << endl;
   }
  };

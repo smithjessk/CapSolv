@@ -22,13 +22,14 @@ cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
 
     // Determine lower threshold limit
     double lowerLimit = mean.at<double>(0) - (1.25 * stddev.at<double>(0));
+    
 
     // Apply that threshold
-    cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
+    //cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
 
     // Show the thresholded image
     if (displayImgs) {
-        cv::namedWindow("Display Image", cv::WINDOW_NORMAL );
+        cv::namedWindow("Display Image", cv::WINDOW_NORMAL);
         cv::imshow("Display Image", img);
         waitKey(0);
     }
