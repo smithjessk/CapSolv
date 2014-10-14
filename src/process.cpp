@@ -22,6 +22,8 @@
 #include "parseRow.h"
 #include "parseSymbol.h"
 
+#include "contours.h"
+
 // Standard Dependencies
 #include <iostream>
 #include <stdio.h>
@@ -70,7 +72,7 @@ cv::Mat PreProcess(cv::Mat img, bool displayImgs = false) {
     double lowerLimit = mean.at<double>(0) - (1.25 * stddev.at<double>(0));
 
     // Apply that threshold
-    cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
+    // cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
 
     // Show the thresholded image
     if (displayImgs) {
@@ -173,62 +175,24 @@ arma::umat ComputeHOG(cv::Mat img, bool displayImgs = false) {
 // Finds the contours in the thresholded image
 vector< arma::umat > AnalyzeContours(cv::Mat img, vector<ParseSymbol>& symbols,
     bool displayImgs = false) {
-    //cout << "Analyzing contours" << endl;
-    // Initialization
+  typedef arma::Mat<unsigned char> cmat;
+  typedef arma::Col<unsigned char> cvec;
+  typedef arma::Row<unsigned char> crow;
 
-    float imgArea = img.rows * img.cols;
-    vector< vector<Point> > contours;
+  capsolv::Contours contours(img);
+  vector<arma::umat> validContours;
+  arma::umat corners = contours.GetCorners();
 
-    // To be returned and passed to SVM
-    vector< arma::umat > validContours;
+  for (int i = 0; i < contours.GetNumContours(); i++) {
+    cmat contour = contours.GetContour(i).t();
+    cv::Mat temp = cv::Mat(contour.n_cols, contour.n_rows, CV_8UC1, contour.memptr());
+    validContours.push_back(ComputeHOG(temp, displayImgs));
+    symbols.push_back({-1, corners(0, i), corners(2, i),
+                       (int) corners(1, i) - (int) corners(0, i),
+                       (int) corners(3, i) - (int) corners(2, i), -1});
+  }
 
-    cv::Mat img1 = img.clone();
-
-    cv::Mat imgMean;
-    cv::Mat imgStdDev;
-    cv::meanStdDev(img1, imgMean, imgStdDev);
-
-    // Find the contours
-    cv::findContours(img, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
-
-    // Vector to hold the bounding rectangles
-    vector<Rect> validRectangles(contours.size());
-
-    // Initialize variables to be used later
-    float currArea;
-    float ratio;
-    int counter = 0;
-    cv::Mat mask;
-    cv::Rect temp;
-    Scalar contourMean;
-
-    // Iterate over contours
-    for (int i = 0; i < contours.size(); i++) {
-        temp = boundingRect(contours[i]);
-
-        // Caluclate each contour's area
-        currArea = temp.width * temp.height;
-        ratio = currArea / imgArea;
-
-
-        // If it's big enough
-        if (ratio < 2 && ratio > 0.0003 && currArea >= 400) {
-            mask = cv::Mat(img1, temp);
-            cv::Mat mask2 = cv::Mat(img, temp);
-            contourMean = cv::mean(mask);
-
-            float intensityRatio = contourMean[0] / imgMean.at<double>(0);
-            if (intensityRatio < 0.95 && (intensityRatio / currArea < 0.0003) ) {
-                validContours.push_back(ComputeHOG(mask, displayImgs));
-
-                symbols.push_back( 
-                    {-1, temp.x, temp.y, temp.width, temp.height, -1});
-                counter++;
-            } 
-        }
-    }
-
-    return validContours;
+  return validContours;
 }
 
 // Loads and evaluates the SVM on inputMat

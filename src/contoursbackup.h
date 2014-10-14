@@ -1,15 +1,19 @@
 #include <armadillo>
 #include <opencv2/core/core.hpp>
+#include <cmath>
+#include <queue>
+#include <unordered_map>
+#include <unordered_set>
 
 typedef arma::Mat<unsigned char> cmat;
 typedef arma::Col<unsigned char> cvec;
 typedef arma::Row<unsigned char> crow;
 
 using namespace arma;
+using namespace std;
 
-//class Contours;
+class Contours;
 
-namespace capsolv {
 class Contours {
  private:
   // Copy of the image passed to the constructor after converting it from opencv
@@ -57,76 +61,104 @@ class Contours {
     cout << "Image cropped" << endl;
     cout << "Cols: " << image_.n_cols << " Rows: " << image_.n_rows << endl;
 
+    // A map from contours to sets of contours. A contour y is in the set mapped
+    // to by contour x if the two contours are adjcacent.
+    auto adj = std::unordered_map<int, std::unordered_set<int>>();
 
     // The current number of contours discovered.
     unsigned char contour_counter = (image_(0, 0) == 0) ? 1 : 0;
+    if (contour_counter != 0)
+      adj.emplace(0, std::unordered_set<int>());
 
     // List contours that were merged into another.
     cvec missing((uword) 0);
 
     // Finding contours in the first column.
-    for (int r = 1; r < image_.n_rows; r++)
-      if (image_(r, 0) != 255)
-        if (image_(r - 1, 0) != 255)
+    for (int r = 1; r < image_.n_rows; r++) {
+      if (image_(r, 0) != 255) {
+        if (image_(r - 1, 0) != 255) {
           image_(r, 0) = image_(r - 1, 0);
-        else
+        } else {
+	  adj.emplace(contour_counter, std::unordered_set<int>());
           image_(r, 0) = contour_counter++;
+	}
+      }
+    }
 
     // Finding contours in the first row.
-    for (int c = 1; c < image_.n_cols; c++)
-      if (image_(0, c) != 255)
-        if (image_(0, c - 1) != 255)
+    for (int c = 1; c < image_.n_cols; c++) {
+      if (image_(0, c) != 255) {
+        if (image_(0, c - 1) != 255) {
           image_(0, c) = image_(0, c - 1);
-        else
+        } else {
+	  adj.emplace(contour_counter, std::unordered_set<int>());
           image_(0, c) = contour_counter++;
+	}
+      }
+    }
 
     // Finding contours everywhere else
     for (int c = 1; c < image_.n_cols; c++) {
       for (int r = 1; r < image_.n_rows; r++) {
         if (image_(r, c) != 255) {
           if (image_(r - 1, c) != 255 && image_(r, c - 1) != 255) {
-            // Meeting of contours.
+            // Meeting of contours is found.
             if (image_(r - 1, c) == image_(r, c - 1)) {
+	      // Contour intersection with itself, a trivial case.
               image_(r, c) = image_(r - 1, c);
             } else {
-              // Merging of contours. Overwrites the contour seen to the left.
+              // Contour intersection is recorded.
               image_(r, c) = image_(r - 1, c);
-	      unsigned char overwritten = image_(r, c - 1);
-              image_(span(0, r - 1), c).transform([&](unsigned char val) {
-                return (val == overwritten) ? image_(r - 1, c) : val;
-              });
-              image_.cols(0, c - 1).transform([&](unsigned char val) {
-                return (val == overwritten) ? image_(r - 1, c) : val;
-              });
-              missing.insert_rows(missing.n_elem, cvec({overwritten}));
+	      adj.at(image_(r - 1, c)).emplace(image_(r, c - 1));
+	      adj.at(image_(r, c - 1)).emplace(image_(r - 1, c));
             }
           } else if (image_(r - 1, c) != 255) {
             image_(r, c) = image_(r - 1, c);
           } else if (image_(r, c - 1) != 255) {
             image_(r, c) = image_(r, c - 1);
           } else {
+	    adj.emplace(contour_counter, std::unordered_set<int>());
             image_(r, c) = contour_counter++;
           }
         }
       }
     }
 
-    num_contours_ = contour_counter - missing.n_elem;
+    cout << "here" << endl;
+
+    PrintMap(adj);
+
+    // Contour merge order is decided, with predecence for lower ordinals.
+    Merge(adj);
+
+    // The map from cardinals to ordinals is constructed.
+    int map_index = 0;
+    map_ = uvec(contour_counter);
+    for (int counter = 0; counter < contour_counter; counter++) {
+      if (adj.count(counter))
+	map_(map_index++) = counter;
+    }
+    map_.resize(map_index);
+
+    num_contours_ = adj.size();
+
+    cout << "here2" << endl;
+
+    cout << image_ << endl;
+
+    PrintMap(adj);
+
+    // The image is overwritten with the merged contours. A map is constructed
+    // to aid in this process.
+    arma::uvec fill_map = arma::uvec(contour_counter, arma::fill::ones);
+    for (auto it = adj.begin(); it != adj.end(); ++it) {
+      fill_map(it->first) = it->first;
+      for (auto element : it->second)
+	fill_map(element) = it->first;
+    }
+    image_.transform([&](unsigned char val) { return fill_map(val); });
 
     cout << "Number contours: " << num_contours_ << endl;
-
-    // Creating the map.
-    map_ = uvec(num_contours_);
-
-    // Index of missing currently being considered.
-    int map_index, missing_index;
-    map_index = missing_index = 0;
-    for (int counter = 0; counter < contour_counter; counter++) {
-      if (missing(missing_index) == counter)
-        missing_index++;
-      else
-        map_(map_index++) = counter;
-    }
 
     // Finding the corners of the bounding box for each contour.
     corners_ = umat(4, num_contours_);
@@ -134,10 +166,10 @@ class Contours {
     for (int counter = 0; counter < num_contours_; counter++) {
       uvec indices = find(image_ == map_(counter));
       uvec adj_indices = indices / image_.n_rows;
-      corners_(0, counter) = min(indices - adj_indices * image_.n_rows);
-      corners_(1, counter) = max(indices - adj_indices * image_.n_rows);
-      corners_(2, counter) = min(adj_indices);
-      corners_(3, counter) = max(adj_indices);
+      corners_(0, counter) = arma::min(indices - adj_indices * image_.n_rows);
+      corners_(1, counter) = arma::max(indices - adj_indices * image_.n_rows);
+      corners_(2, counter) = arma:: min(adj_indices);
+      corners_(3, counter) = arma::max(adj_indices);
     }
 
     cout << corners_ << endl;
@@ -147,18 +179,10 @@ class Contours {
   cmat GetContour(int counter) const {
     int index = map_(counter);
     cmat contour =  image_.submat(corners_(0, counter), corners_(2, counter),
-                                  corners_(1, counter), corners_(3, counter));
-    return contour.transform([&](unsigned int val) {
+				  corners_(1, counter), corners_(3, counter));
+    return contour.transform([&](unsigned char val) {
       return (val == index) ? 0 : 255;
     });
-  }
-
-  inline unsigned int GetNumContours() const {
-    return num_contours_;
-  }
-
-  inline arma::umat GetCorners() const {
-    return corners_;
   }
 
   void PrintImage() {
@@ -174,5 +198,47 @@ class Contours {
     }
     cout << endl;
   }
- };
-}
+
+  void PrintMap(const std::unordered_map<int, std::unordered_set<int>>& map) {
+    for (auto it = map.begin(); it != map.end(); ++it) {
+      cout << it->first << ":";
+      for (auto element : it->second)
+	cout << " " << element;
+      cout << endl;
+    }
+  }
+
+  void Merge(std::unordered_map<int, std::unordered_set<int>>& map) {
+    auto seen = std::unordered_set<int>();
+    auto prev = std::unordered_set<int>();
+    auto queue = std::queue<int>();
+    auto ret = std::unordered_map<int, std::unordered_set<int>>();
+    int min;
+    for (auto it = map.begin(); it != map.end(); ++it) {
+      if (seen.count(it->first) == 0) {
+        min = it->first;
+        queue.push(it->first);
+        while (!queue.empty()) {
+          auto current = queue.front();
+          queue.pop();
+          for (auto element : map.at(current)) {
+            if (prev.count(element) == 0 && seen.count(element) == 0 && element != min) {
+              queue.push(element);
+              if (element < min) {
+                seen.emplace(min);
+                min = element;
+              } else {
+                seen.emplace(element);
+              }
+            }
+          }
+        }
+        ret.emplace(min, seen);
+        for (auto element : seen)
+          prev.emplace(element);
+        seen.clear();
+      }
+    }
+    map = ret;
+  }
+};

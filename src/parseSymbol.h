@@ -1,7 +1,7 @@
 /**
  * An object representin a symbol in the parsing algorithm
  *
- * 
+ *
  * Used by ./process.cpp
  *
  * @author Jess Smith <smith.jessk@gmail.com>
@@ -47,7 +47,7 @@ public:
 		return row_;
 	}
 
-	// Returns the id that this symbol has been predicted as 
+	// Returns the id that this symbol has been predicted as
 	int GetEnumId() {
 		return id_;
 	}

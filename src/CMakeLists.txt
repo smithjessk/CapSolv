@@ -3,7 +3,7 @@ project( DisplayImage )
 
 set(CMAKE_MODULE_PATH './cmake-modules')
 
-list( APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g -ftest-coverage -fprofile-arcs") 
+list( APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g -ftest-coverage -fprofile-arcs")
 ## Use c++11
 
 find_package( OpenCV REQUIRED )

@@ -4,7 +4,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <armadillo>
-//#include <contours.h>
 #include "contours.h"
 
 using namespace cv;
@@ -22,7 +21,6 @@ cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
 
     // Determine lower threshold limit
     double lowerLimit = mean.at<double>(0) - (1.25 * stddev.at<double>(0));
-    
 
     // Apply that threshold
     //cv::threshold(img, img, lowerLimit, 255, cv::THRESH_BINARY);
@@ -38,7 +36,7 @@ cv::Mat preProcess(cv::Mat img, bool displayImgs = false) {
     return img;
 }
 
-// First resize it; the ratio to resize to depends on the picture's 
+// First resize it; the ratio to resize to depends on the picture's
 // initial aspect ratio
 // Result is 64 by 1
 int main(int argc, char** argv) {
@@ -47,7 +45,8 @@ int main(int argc, char** argv) {
     image = cv::imread( argv[1], 0);
     image = preProcess(image);
 
-    Contours contours (image);
+    capsolv::Contours contours (image);
+    cout << contours.GetContour(0) << contours.GetContour(1);
 
     /**
     arma::umat hogData = HOG(image);
